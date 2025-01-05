@@ -98,4 +98,4 @@ export function getToken(): string | null {
 
 export function isAuthenticated(): boolean {
   return !!getToken();
-} 
+}

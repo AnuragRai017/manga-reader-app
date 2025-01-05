@@ -7,8 +7,8 @@ import CleanLayout from '../layouts/CleanLayout.astro';
      <div id="cityscape-background" class="absolute inset-0 bg-black"></div>
      <div id="rain-overlay" class="absolute inset-0 pointer-events-none"></div>
 
-    <div class="max-w-md mx-auto mt-8 relative z-10">
-      <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md transform transition-all duration-300 hover:shadow-xl relative overflow-hidden">
+    <div class="max-w-xl mx-auto mt-8 relative z-10">
+      <div class="bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-8 rounded-lg shadow-md transform transition-all duration-300 hover:shadow-xl backdrop-blur-sm border border-opacity-20 border-white dark:border-gray-700 relative overflow-hidden">
          <div id="character-container" class="absolute top-0 right-0 -mt-8 -mr-12 opacity-80" style="perspective: 1000px;">
           <svg id="character" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
              <g id="characterBody">
@@ -224,6 +224,16 @@ import CleanLayout from '../layouts/CleanLayout.astro';
     0% { transform: scale(0.2); opacity: 1; }
     100% { transform: scale(1.5); opacity: 0; }
   }
+  .bg-gradient-to-br {
+    background-size: 200% 200%;
+    animation: gradientMove 15s ease infinite;
+  }
+
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 </style>
 
 <script>
@@ -385,12 +395,14 @@ import CleanLayout from '../layouts/CleanLayout.astro';
         input.parentElement.style.transform = 'rotateY(10deg)';
       }
     });
+    
     input.addEventListener('blur', () => {
       input.parentElement?.classList.remove('scale-105', 'glowing-border', 'pulse');
       if (input.parentElement && input.parentElement instanceof HTMLElement) {
         input.parentElement.style.transform = 'rotateY(0deg)';
       }
     });
+    
     input.addEventListener('input', () => {
       if (input.value) {
         input.nextElementSibling?.classList.add('filled');
@@ -399,6 +411,7 @@ import CleanLayout from '../layouts/CleanLayout.astro';
       }
     });
   });
+
   button.addEventListener('click', (e) => {
     const rect = button.getBoundingClientRect();
     createSpark(e.clientX, e.clientY, button);

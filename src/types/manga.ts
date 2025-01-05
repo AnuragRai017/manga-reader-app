@@ -15,6 +15,7 @@ export interface Manga {
   chapters: any[];
   createdAt: Date;
   updatedAt: Date;
+  rating?: number; // Add this property
   // ... other properties
 }
 

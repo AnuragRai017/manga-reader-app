@@ -9,38 +9,84 @@ interface Props {
 const { manga } = Astro.props;
 ---
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-  <a href={`/manga/${manga.mangadexId}`} class="block">
-    <div class="relative w-full h-64">
-      {manga.coverUrl ? (
-        <img
-          src={manga.coverUrl}
-          alt={manga.title}
-          class="w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
-          onerror="this.onerror=null; this.src='/placeholder.jpg'"
-        />
-      ) : (
-        <PlaceholderImage height={256} />
-      )}
-    </div>
-    <div class="p-4">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2">
-        {manga.title}
-      </h3>
-      {manga.authors?.length > 0 && (
-        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          By {manga.authors.join(', ')}
-        </p>
-      )}
-      <div class="flex flex-wrap gap-1 mt-2">
-        {manga.tags?.slice(0, 3).map((tag) => (
-          <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-            {tag}
-          </span>
-        ))}
+<div class="group relative transform-hover dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300">
+  <div class="card-inner relative">
+    <a href={`/manga/${manga.mangadexId}`} class="block">
+      <div class="relative w-full h-64">
+        {manga.coverUrl ? (
+          <img
+            src={manga.coverUrl}
+            alt={manga.title}
+            class="w-full h-full object-cover rounded-t-lg"
+            loading="lazy"
+            decoding="async"
+            onerror="this.onerror=null; this.src='/placeholder.jpg'"
+          />
+        ) : (
+          <PlaceholderImage height={256} />
+        )}
       </div>
-    </div>
-  </a>
+      <div class="p-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 group-hover:text-blue-400 transition-colors duration-300">
+          {manga.title}
+        </h3>
+        {manga.authors?.length > 0 && (
+          <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+            By {manga.authors.join(', ')}
+          </p>
+        )}
+        <div class="flex flex-wrap gap-1 mt-2">
+          {manga.tags?.slice(0, 3).map((tag) => (
+            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+      <!-- Enhanced Details Overlay -->
+      <div class="absolute inset-0 bg-black bg-opacity-75 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-start items-center p-4 max-h-64 overflow-y-auto rounded-b-lg">
+        <p class="mb-2 text-sm text-center">
+          {manga.description || 'No description available.'}
+        </p>
+        <div class="flex items-center space-x-2 mb-4">
+          <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.98a1 1 0 00.95.69h4.164c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.286 3.98c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.84-.197-1.54-1.118l1.286-3.98a1 1 0 00-.364-1.118L2.392 9.407c-.783-.57-.38-1.81.588-1.81h4.164a1 1 0 00.95-.69l1.286-3.98z" />
+          </svg>
+          <span>{manga.rating || 'N/A'}</span>
+        </div>
+        <div class="mb-4 text-sm">
+          <span class="font-medium">Chapters:</span> {manga.chapters.length || '0'}
+        </div>
+        <a href={`/manga/${manga.mangadexId}`} class="mt-2 text-blue-400 hover:underline">
+          Read More
+        </a>
+      </div>
+    </a>
+  </div>
 </div>
+
+<style>
+  /* Card Lifting and 3D Rotation */
+  .transform-hover {
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease-in-out;
+  }
+  .transform-hover:hover {
+      transform: translateY(-5px) rotateX(2deg);
+  }
+  .card-inner {
+    perspective: 1000px; /* Perspective for the 3D effect */
+  }
+
+  /* Smooth transition for scaling */
+  .transform-hover:hover {
+    transform: translateY(-5px) rotateX(2deg);
+  }
+  
+  .group:hover .absolute {
+    opacity: 1;
+  }
+  .absolute {
+    transition: opacity 0.3s ease-in-out;
+  }
+</style>

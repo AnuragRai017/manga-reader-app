@@ -1,64 +1,87 @@
 ---
 import CleanLayout from '../layouts/CleanLayout.astro';
-
 const message = Astro.url.searchParams.get('message');
 ---
 
 <CleanLayout title="Login">
-  <div class="max-w-md mx-auto mt-8">
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md transform transition-all duration-300 hover:shadow-xl">
-      <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Login</h1>
-      {message && (
-        <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-          <span>{message}</span>
+  <div id="cyberpunk-container" class="relative min-h-screen overflow-hidden flex items-center justify-center">
+    <div id="cityscape-background" class="absolute inset-0 bg-black"></div>
+    <div id="rain-overlay" class="absolute inset-0 pointer-events-none"></div>
+
+    <div class="max-w-xl mx-auto mt-8 relative z-10">
+      <div class="bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-8 rounded-lg shadow-md transform transition-all duration-300 hover:shadow-xl backdrop-blur-sm border border-opacity-20 border-white dark:border-gray-700 relative overflow-hidden">
+        <div id="character-container" class="absolute top-0 right-0 -mt-8 -mr-12 opacity-80" style="perspective: 1000px;">
+          <svg id="character" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="characterBody">
+              <!-- Naruto's Head -->
+              <path d="M60,20 C70,15 80,20 85,30 C90,40 90,50 85,60 C80,70 70,75 60,75 C50,75 40,70 35,60 C30,50 30,40 35,30 C40,20 50,15 60,20 Z" fill="#F0C33A"/>
+              <circle cx="45" cy="45" r="5" fill="black"/>
+              <circle cx="75" cy="45" r="5" fill="black"/>
+              <path d="M40 50 C45 60, 75 60, 80 50" stroke="black" stroke-width="2"/>
+              <path d="M45 25 C48 20, 55 20, 58 25" stroke="black" stroke-width="2"/>
+              <path d="M62 25 C65 20, 72 20, 75 25" stroke="black" stroke-width="2"/>
+              <!-- Naruto's Headband -->
+              <rect x="30" y="20" width="60" height="10" fill="#FF0000"/>
+              <circle cx="60" cy="25" r="5" fill="#FFFFFF"/>
+            </g>
+            <g id="rasengan" style="opacity:0; transform: scale(0.5); transform-origin:50% 50%;">
+              // ...existing rasengan circles...
+            </g>
+          </svg>
         </div>
-      )}
-      <form id="loginForm" class="space-y-4">
-        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <span class="message">Error message here</span>
-        </div>
-        <div class="input-group relative">
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
-            placeholder=" "
-          />
-          <label for="email" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
-            Email
-          </label>
-        </div>
-        <div class="input-group relative">
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
-            placeholder=" "
-          />
-          <label for="password" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
-            Password
-          </label>
-        </div>
-        <div class="flex items-center justify-between">
-          <a href="/forgot-password" class="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
-            Forgot your password?
-          </a>
-        </div>
-        <button
-          type="submit"
-          class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-300 hover:scale-105 active:scale-95"
-        >
-          Sign in
-        </button>
-        <p class="text-sm text-center text-gray-600 dark:text-gray-400">
-          Don't have an account?
-          <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">Sign up</a>
-        </p>
-      </form>
+        <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Login</h1>
+        {message && (
+          <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+            <span>{message}</span>
+          </div>
+        )}
+        <form id="loginForm" class="space-y-4">
+          <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="message">Error message here</span>
+          </div>
+          <div class="input-group relative">
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="email" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Email
+            </label>
+          </div>
+          <div class="input-group relative">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="password" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Password
+            </label>
+          </div>
+          <div class="flex items-center justify-between">
+            <a href="/forgot-password" class="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              Forgot your password?
+            </a>
+          </div>
+          <button
+            type="submit"
+            class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-300 hover:scale-105 active:scale-95"
+          >
+            Sign in
+          </button>
+          <p class="text-sm text-center text-gray-600 dark:text-gray-400">
+            Don't have an account?
+            <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">Sign up</a>
+          </p>
+        </form>
+      </div>
     </div>
   </div>
 </CleanLayout>
@@ -88,6 +111,68 @@ const message = Astro.url.searchParams.get('message');
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
   }
+
+  .bg-gradient-to-br {
+    background-size: 200% 200%;
+    animation: gradientMove 15s ease infinite;
+  }
+
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  #cyberpunk-container {
+    background: linear-gradient(180deg, #000000 0%, #110022 100%);
+    animation: color-shift 20s linear infinite;
+  }
+
+  @keyframes color-shift {
+    0% { background: linear-gradient(180deg, #000000 0%, #110022 100%); }
+    25% { background: linear-gradient(180deg, #110022 0%, #000044 100%); }
+    50% { background: linear-gradient(180deg, #000044 0%, #002211 100%); }
+    75% { background: linear-gradient(180deg, #002211 0%, #110022 100%); }
+    100% { background: linear-gradient(180deg, #000000 0%, #110022 100%); }
+  }
+
+  #cityscape-background {
+    background-image: url('/src/static/city_1.png');
+    background-size: cover;
+    background-position: bottom;
+    filter: brightness(0.7) contrast(1.2) saturate(1.5);
+    opacity: 0.5;
+    animation: parallax 10s linear infinite reverse;
+  }
+
+  @keyframes parallax {
+    0% { background-position: bottom left; }
+    100% { background-position: bottom right; }
+  }
+
+  #rain-overlay {
+    background: url('/src/static/rain.gif');
+    background-size: cover;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  @keyframes wave {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  @keyframes jump {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0) rotateX(0deg) scaleY(1);}
+    40% {transform: translateY(-10px) rotateX(20deg) scaleY(1.1);}
+    60% {transform: translateY(-5px) rotateX(10deg) scaleY(1.05);}
+  }
+
+  .glowing-border {
+    box-shadow: 0 0 10px 2px rgba(0, 255, 255, 0.5);
+    transition: box-shadow 0.3s ease;
+  }
 </style>
 
 <script>
@@ -96,6 +181,36 @@ const message = Astro.url.searchParams.get('message');
   const form = document.getElementById('loginForm') as HTMLFormElement;
   const errorDiv = document.getElementById('errorMessage')!;
   const errorMessage = errorDiv.querySelector('.message')!;
+
+  const characterBody = document.getElementById('characterBody') as unknown as SVGGElement;
+  const rasengan = document.getElementById('rasengan') as unknown as SVGGElement;
+
+  function animateCharacter(animation: string, duration: number = 500) {
+    characterBody.style.animation = `${animation} ${duration}ms ease-in-out forwards`;
+    setTimeout(() => {
+      characterBody.style.animation = '';
+      characterBody.style.transform = '';
+    }, duration);
+  }
+
+  // Add input animation handlers
+  const inputs = document.querySelectorAll('input');
+  inputs.forEach(input => {
+    input.addEventListener('focus', () => {
+      input.parentElement?.classList.add('scale-105', 'glowing-border');
+      animateCharacter('wave');
+      if (input.parentElement && input.parentElement instanceof HTMLElement) {
+        input.parentElement.style.transform = 'rotateY(10deg)';
+      }
+    });
+    
+    input.addEventListener('blur', () => {
+      input.parentElement?.classList.remove('scale-105', 'glowing-border');
+      if (input.parentElement && input.parentElement instanceof HTMLElement) {
+        input.parentElement.style.transform = 'rotateY(0deg)';
+      }
+    });
+  });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -108,28 +223,21 @@ const message = Astro.url.searchParams.get('message');
       errorDiv.classList.add('hidden');
       submitButton?.classList.add('opacity-75', 'cursor-not-allowed');
       submitButton!.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> Signing in...';
+      animateCharacter('wave', 500);
       const response = await login(email, password);
-      window.location.href = '/'; // Redirect to home page after successful login
+      animateCharacter('jump', 800);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     } catch (error) {
       errorDiv.classList.remove('hidden');
       errorMessage.textContent = error instanceof Error ? error.message : 'An error occurred';
       form.classList.add('shake');
+      animateCharacter('shake');
       setTimeout(() => form.classList.remove('shake'), 500);
     } finally {
       submitButton?.classList.remove('opacity-75', 'cursor-not-allowed');
       submitButton!.textContent = 'Sign in';
     }
-  });
-
-  // Add input animation handlers
-  const inputs = document.querySelectorAll('input');
-  inputs.forEach(input => {
-    input.addEventListener('focus', () => {
-      input.parentElement?.classList.add('scale-105');
-    });
-    
-    input.addEventListener('blur', () => {
-      input.parentElement?.classList.remove('scale-105');
-    });
   });
 </script>

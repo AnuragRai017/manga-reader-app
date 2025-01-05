@@ -2,21 +2,56 @@
 import Layout from '../layouts/Layout.astro';
 import MangaCard from '../components/MangaCard.astro';
 import { connectDB, closeDB } from '../lib/db';
-import type { Manga } from '../types/manga';
+import { MangaModel } from '../lib/models/manga';
+import type { Manga } from '../lib/models/manga';
 
-// Fetch manga data
-const db = await connectDB();
-const mangaCollection = db.collection<Manga>('manga');
-const allManga = await mangaCollection.find().toArray();
-await closeDB();
+let allManga: Manga[] = [];
+
+try {
+  // Connect to database
+  await connectDB();
+  
+  // Fetch all manga using mongoose model
+  const mangaDocs = await MangaModel.find({}).lean();
+  allManga = mangaDocs.map(doc => ({
+    mangadexId: doc.mangadexId,
+    title: doc.title,
+    description: doc.description,
+    status: doc.status,
+    contentRating: doc.contentRating,
+    tags: doc.tags,
+    authors: doc.authors,
+    artists: doc.artists,
+    coverUrl: doc.coverUrl,
+    coverFileName: doc.coverFileName,
+    chapters: doc.chapters,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    rating: doc.rating,
+  })) as Manga[];
+  
+  // Close database connection
+  await closeDB();
+} catch (error) {
+  console.error('Error fetching manga:', error);
+  return new Response('Error fetching manga', { status: 500 });
+}
 ---
 
 <Layout title="Browse Manga">
-  <div class="container mx-auto px-4">
+  <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Browse Manga</h1>
     
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {allManga.map((manga) => <MangaCard manga={manga} />)}
-    </div>
+    {allManga && allManga.length > 0 ? (
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {allManga.map((manga) => (
+          <MangaCard manga={manga} />
+        ))}
+      </div>
+    ) : (
+      <div class="text-center py-12">
+        <p class="text-gray-600 dark:text-gray-400">No manga available yet.</p>
+      </div>
+    )}
   </div>
-</Layout> 
+</Layout>

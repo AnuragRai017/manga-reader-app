@@ -1,0 +1,25 @@
+---
+let progress = '';
+---
+<div>
+  <!-- ...existing code... -->
+
+  <h2>Progress</h2>
+  <div id="progress">
+    {progress}
+  </div>
+
+  <!-- ...existing code... -->
+</div>
+
+<script>
+  const progressElement = document.getElementById('progress');
+  
+  async function updateProgress() {
+    const response = await fetch('/api/progress');
+    const data = await response.json();
+    if (progressElement) progressElement.textContent = data.status;
+  }
+
+  updateProgress();
+</script>

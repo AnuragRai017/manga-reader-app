@@ -1,10 +1,12 @@
 {
   "dependencies": {
     "@astrojs/tailwind": "^5.1.4",
+    "astro-icon": "^1.1.5",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "bottleneck": "^2.19.5",
     "cheerio": "^1.0.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.12.0",
@@ -16,6 +18,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/next": "^8.0.7",
+    "@types/node": "^22.10.5",
     "@types/nodemailer": "^6.4.14",
     "@types/webidl-conversions": "^7.0.3",
     "@types/whatwg-url": "^13.0.0",

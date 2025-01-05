@@ -1,0 +1,30 @@
+---
+import { connectDB, closeDB } from '../lib/db';
+import { MangaModel } from '../lib/models/manga';
+
+// ...existing code...
+import type { APIRoute } from 'astro';
+
+export const get: APIRoute = async () => {
+  try {
+    // Connect to the database
+    const db = await connectDB();
+
+    // Select a random manga
+    const [randomManga] = await MangaModel.aggregate([{ $sample: { size: 1 } }]);
+
+    // Close the database connection
+    await closeDB();
+
+    // Redirect to the random manga's detail page or to browse if none found
+    if (randomManga) {
+      return new Response(null, { status: 302, headers: { Location: `/manga/${randomManga.mangadexId}` } });
+    } else {
+      return new Response(null, { status: 302, headers: { Location: '/browse' } });
+    }
+  } catch (error) {
+    console.error(error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+};
+---

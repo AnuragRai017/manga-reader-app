@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
-const {Schema, model, models,Model} = mongoose;
+const { Schema, model, models, Model } = mongoose;
 
 export interface Chapter {
   chapterId: string;
   number?: string;
   title?: string;
+  volume?: string;
   publishedAt?: Date | string;
   pages: string[];
+  description?: string;
   // other chapter properties
 }
 
@@ -24,7 +26,18 @@ export interface Manga {
   chapters: Chapter[];
   createdAt: Date;
   updatedAt: Date;
+  rating?: number;
 }
+
+const chapterSchema = new Schema<Chapter>({
+  chapterId: { type: String, required: true },
+  number: { type: String, required: true },
+  title: String,
+  volume: String,
+  pages: [{ type: String }],
+  publishedAt: { type: Date, required: true },
+  description: String,
+});
 
 const mangaSchema = new Schema<Manga>({
   mangadexId: { type: String, required: true },
@@ -37,16 +50,10 @@ const mangaSchema = new Schema<Manga>({
   artists: [{ type: String }],
   coverUrl: String,
   coverFileName: String,
-  chapters: [{
-    chapterId: { type: String, required: true },
-    number: { type: String, required: true },
-    title: String,
-    volume: String,
-    pages: [{ type: String }],
-    publishedAt: { type: Date, required: true }
-  }],
+  chapters: [chapterSchema],
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+  rating: Number,
 });
 
 // Add indexes for better query performance
@@ -56,5 +63,5 @@ mangaSchema.index({ status: 1 });
 mangaSchema.index({ contentRating: 1 });
 mangaSchema.index({ updatedAt: -1 });
 
-// Update the model export to use the imported types
-export const MangaModel: typeof Model = models.Manga || model<Manga>('Manga', mangaSchema);
+const MangaModel = mongoose.models.Manga || mongoose.model<Manga>('Manga', mangaSchema);
+export { MangaModel };
