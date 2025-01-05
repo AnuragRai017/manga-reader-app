@@ -1,0 +1,25 @@
+---
+interface Props {
+  width?: number | string;
+  height?: number | string;
+  text?: string;
+}
+
+const { 
+  width = '100%', 
+  height = '100%', 
+  text = 'No Image Available'
+} = Astro.props;
+
+const heightStyle = typeof height === 'number' ? `${height}px` : height;
+const widthStyle = typeof width === 'number' ? `${width}px` : width;
+---
+
+<div 
+  class="bg-gray-200 dark:bg-gray-700 flex items-center justify-center w-full h-full"
+  style={`width: ${widthStyle}; height: ${heightStyle};`}
+>
+  <span class="text-gray-500 dark:text-gray-400 text-sm text-center px-4">
+    {text}
+  </span>
+</div> 

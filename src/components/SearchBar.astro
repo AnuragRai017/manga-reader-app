@@ -1,0 +1,190 @@
+---
+const genres = [
+  'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy',
+  'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Slice of Life'
+];
+---
+
+<div class="relative">
+  <div class="relative">
+    <input
+      type="text"
+      id="search-input"
+      placeholder="Search manga..."
+      class="w-64 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+    />
+    <button
+      type="button"
+      id="search-button"
+      class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      aria-label="Search"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+    </button>
+  </div>
+  
+  <!-- Search Results Dropdown -->
+  <div id="search-results" class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hidden">
+    <div class="p-2">
+      <!-- Quick Filters -->
+      <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Quick Filters:</div>
+        <div class="flex flex-wrap gap-2">
+          {genres.slice(0, 5).map(genre => (
+            <a
+              href={`/search?genre=${encodeURIComponent(genre)}`}
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              {genre}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div id="results-content" class="space-y-2">
+        <!-- Results will be dynamically inserted here -->
+      </div>
+      <div id="loading-indicator" class="hidden py-2 text-center text-gray-500 dark:text-gray-400">
+        Searching...
+      </div>
+      <div id="no-results" class="hidden py-2 text-center text-gray-500 dark:text-gray-400">
+        No results found
+      </div>
+
+      <!-- Advanced Search Link -->
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <a
+          href="/search"
+          class="block text-center text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+        >
+          Advanced Search
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  interface SearchResult {
+    _id: string;
+    title: string;
+    author: string;
+    coverImage: string;
+  }
+
+  let searchTimeout: NodeJS.Timeout;
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  const searchButton = document.getElementById('search-button') as HTMLButtonElement;
+  const searchResults = document.getElementById('search-results') as HTMLDivElement;
+  const resultsContent = document.getElementById('results-content') as HTMLDivElement;
+  const loadingIndicator = document.getElementById('loading-indicator') as HTMLDivElement;
+  const noResults = document.getElementById('no-results') as HTMLDivElement;
+
+  async function searchManga(query: string) {
+    if (!query.trim()) {
+      hideResults();
+      return;
+    }
+
+    showLoading();
+
+    try {
+      const response = await fetch(`/api/manga/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json() as SearchResult[];
+
+      if (data.length === 0) {
+        showNoResults();
+        return;
+      }
+
+      displayResults(data);
+    } catch (error) {
+      console.error('Search error:', error);
+      showNoResults();
+    }
+  }
+
+  function displayResults(results: SearchResult[]) {
+    resultsContent.innerHTML = results.map(manga => `
+      <a href="/manga/${manga._id}" class="block p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <img src="${manga.coverImage}" alt="${manga.title}" class="w-10 h-14 object-cover rounded">
+          <div>
+            <div class="font-medium text-gray-900 dark:text-white">${manga.title}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">${manga.author}</div>
+          </div>
+        </div>
+      </a>
+    `).join('');
+
+    showResults();
+  }
+
+  function showLoading() {
+    searchResults.classList.remove('hidden');
+    loadingIndicator.classList.remove('hidden');
+    resultsContent.classList.add('hidden');
+    noResults.classList.add('hidden');
+  }
+
+  function showResults() {
+    searchResults.classList.remove('hidden');
+    loadingIndicator.classList.add('hidden');
+    resultsContent.classList.remove('hidden');
+    noResults.classList.add('hidden');
+  }
+
+  function showNoResults() {
+    searchResults.classList.remove('hidden');
+    loadingIndicator.classList.add('hidden');
+    resultsContent.classList.add('hidden');
+    noResults.classList.remove('hidden');
+  }
+
+  function hideResults() {
+    searchResults.classList.add('hidden');
+  }
+
+  // Event Listeners
+  searchInput.addEventListener('input', (e) => {
+    const query = (e.target as HTMLInputElement).value;
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchManga(query), 300);
+  });
+
+  searchButton.addEventListener('click', () => {
+    const query = searchInput.value;
+    if (query.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(query)}`;
+    }
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const query = searchInput.value;
+      if (query.trim()) {
+        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+      }
+    }
+  });
+
+  // Close results when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!searchResults.contains(e.target as Node) && !searchInput.contains(e.target as Node)) {
+      hideResults();
+    }
+  });
+</script> 

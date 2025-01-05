@@ -1,0 +1,25 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Data Load Progress">
+  <h1 class="text-2xl font-bold">Data Load Progress</h1>
+  <div id="progressContainer" class="mt-4"></div>
+
+  <script>
+    const eventSource = new EventSource('/api/admin/load-initial-data/progress');
+    eventSource.addEventListener('progress', (e: MessageEvent) => {
+      const container = document.getElementById('progressContainer');
+      if (!container) return;
+      const data = JSON.parse(e.data);
+      container.innerHTML = `
+        <div>
+          <p><strong>Manga:</strong> ${data.manga ?? 'N/A'}</p>
+          <p><strong>Chapters:</strong> ${data.updatedChapters ?? 0}</p>
+          <p><strong>Pages:</strong> ${data.pages ?? 0}</p>
+          <p><strong>Status:</strong> ${data.status ?? 'N/A'}</p>
+        </div>
+      `;
+    });
+  </script>
+</Layout>

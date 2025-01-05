@@ -1,0 +1,55 @@
+---
+---
+<button id="theme-toggle" class="theme-toggle-btn focus:outline-none bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:bg-gradient-to-r dark:from-gray-700 dark:to-gray-900 p-2 rounded-full shadow-lg transition-transform transform hover:scale-110" type="button">
+    <span class="sr-only">Toggle theme</span>
+    <svg id="theme-toggle-dark-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+    </svg>
+    <svg id="theme-toggle-light-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.22a1 1 0 011.415 1.415l-.707.707a1 1 0 11-1.414-1.414l.706-.708zM18 9a1 1 0 100 2h-1a1 1 0 100-2h1zm-2.22 5.78a1 1 0 011.415 1.415l-.707.707a1 1 0 11-1.414-1.414l.706-.708zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-4.22-1.78a1 1 0 011.415-1.415l.707.707a1 1 0 11-1.414 1.414l-.708-.706zM4 9a1 1 0 100 2H3a1 1 0 100-2h1zm2.22-5.78a1 1 0 011.415 1.415l-.707.707a1 1 0 11-1.414-1.414l.706-.708z" />
+    </svg>
+  </button>
+  
+  <style>
+    .theme-toggle-btn {
+      animation: pulse 2s infinite;
+    }
+  
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  </style>
+  
+  <script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const darkIcon = document.getElementById('theme-toggle-dark-icon');
+    const lightIcon = document.getElementById('theme-toggle-light-icon');
+  
+    // Initialize theme based on localStorage or system preference
+    if (localStorage.getItem('theme') === 'dark' || 
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      darkIcon?.classList.remove('hidden');
+      lightIcon?.classList.add('hidden');
+    } else {
+      document.documentElement.classList.remove('dark');
+      darkIcon?.classList.add('hidden');
+      lightIcon?.classList.remove('hidden');
+    }
+  
+    // Toggle theme on button click
+    themeToggleBtn?.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      
+      if (isDark) {
+        darkIcon?.classList.remove('hidden');
+        lightIcon?.classList.add('hidden');
+      } else {
+        darkIcon?.classList.add('hidden');
+        lightIcon?.classList.remove('hidden');
+      }
+    });
+  </script>

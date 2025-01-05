@@ -1,0 +1,406 @@
+---
+import CleanLayout from '../layouts/CleanLayout.astro';
+---
+
+<CleanLayout title="Sign Up">
+  <div id="cyberpunk-container" class="relative min-h-screen overflow-hidden flex items-center justify-center">
+     <div id="cityscape-background" class="absolute inset-0 bg-black"></div>
+     <div id="rain-overlay" class="absolute inset-0 pointer-events-none"></div>
+
+    <div class="max-w-md mx-auto mt-8 relative z-10">
+      <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md transform transition-all duration-300 hover:shadow-xl relative overflow-hidden">
+         <div id="character-container" class="absolute top-0 right-0 -mt-8 -mr-12 opacity-80" style="perspective: 1000px;">
+          <svg id="character" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <g id="characterBody">
+                 <!-- Naruto's Head -->
+                 <path d="M60,20 C70,15 80,20 85,30 C90,40 90,50 85,60 C80,70 70,75 60,75 C50,75 40,70 35,60 C30,50 30,40 35,30 C40,20 50,15 60,20 Z" fill="#F0C33A"/>
+                 <circle cx="45" cy="45" r="5" fill="black"/>
+                 <circle cx="75" cy="45" r="5" fill="black"/>
+                 <path d="M40 50 C45 60, 75 60, 80 50" stroke="black" stroke-width="2"/>
+                 <path d="M45 25 C48 20, 55 20, 58 25" stroke="black" stroke-width="2"/>
+                 <path d="M62 25 C65 20, 72 20, 75 25" stroke="black" stroke-width="2"/>
+                 <!-- Naruto's Headband -->
+                 <rect x="30" y="20" width="60" height="10" fill="#FF0000"/>
+                 <circle cx="60" cy="25" r="5" fill="#FFFFFF"/>
+             </g>
+             <g id="rasengan" style="opacity:0; transform: scale(0.5); transform-origin:50% 50%;">
+               <circle cx="60" cy="60" r="30" fill="#00FFFF">
+                 <animate attributeName="opacity" from="0.5" to="0" dur="1s" repeatCount="indefinite" />
+                 <animate attributeName="r" from="30" to="35" dur="1s" repeatCount="indefinite" />
+               </circle>
+               <circle cx="60" cy="60" r="20" stroke="#00FFFF" stroke-width="5">
+                 <animate attributeName="opacity" from="0.8" to="0" dur="1s" repeatCount="indefinite" />
+                 <animate attributeName="r" from="20" to="25" dur="1s" repeatCount="indefinite" />
+               </circle>
+               <circle cx="60" cy="60" r="10" stroke="#00FFFF" stroke-width="8">
+                 <animate attributeName="opacity" from="1" to="0" dur="1s" repeatCount="indefinite" />
+                 <animate attributeName="r" from="10" to="15" dur="1s" repeatCount="indefinite" />
+               </circle>
+             </g>
+           </svg>
+        </div>
+        <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Create Account</h1>
+        <form id="signupForm" class="space-y-4">
+          <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative slide-up" role="alert">
+            <span class="message">Error message here</span>
+            <div class="details mt-2 text-sm"></div>
+          </div>
+          <div class="input-group relative" style="perspective: 500px;">
+            <input
+              type="text"
+              id="username"
+              name="username"
+              required
+              minlength="3"
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="username" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Username
+            </label>
+            <span class="error-text text-red-600 text-sm hidden"></span>
+          </div>
+          <div class="input-group relative" style="perspective: 500px;">
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="email" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Email
+            </label>
+            <span class="error-text text-red-600 text-sm hidden"></span>
+          </div>
+          <div class="input-group relative" style="perspective: 500px;">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              minlength="8"
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="password" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Password
+            </label>
+            <span class="error-text text-red-600 text-sm hidden"></span>
+          </div>
+          <div class="input-group relative" style="perspective: 500px;">
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              required
+              minlength="8"
+              class="peer mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white px-4 py-2 transition-all duration-300"
+              placeholder=" "
+            />
+            <label for="confirmPassword" class="absolute left-2 top-2 text-gray-500 transition-all duration-300 transform -translate-y-4 scale-75 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4 bg-white dark:bg-gray-800 px-2">
+              Confirm Password
+            </label>
+            <span class="error-text text-red-600 text-sm hidden"></span>
+          </div>
+           <button
+            type="submit"
+            class="relative w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
+          >
+            <span id="submitButtonText">Sign Up</span>
+            <span id="loadingIcon" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300">
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          </button>
+          <p class="text-sm text-center text-gray-600 dark:text-gray-400">
+            Already have an account?
+            <a href="/login" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">Sign in</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+</CleanLayout>
+
+<style>
+  #cyberpunk-container {
+    background: linear-gradient(180deg, #000000 0%, #110022 100%);
+    animation: color-shift 20s linear infinite;
+  }
+  @keyframes color-shift {
+    0% { background: linear-gradient(180deg, #000000 0%, #110022 100%); }
+    25% { background: linear-gradient(180deg, #110022 0%, #000044 100%); }
+    50% { background: linear-gradient(180deg, #000044 0%, #002211 100%); }
+    75% { background: linear-gradient(180deg, #002211 0%, #110022 100%); }
+    100% { background: linear-gradient(180deg, #000000 0%, #110022 100%); }
+  }
+  #cityscape-background {
+    background-image: url('/src/static/city_1.png');
+    background-size: cover;
+    background-position: bottom;
+    filter: brightness(0.7) contrast(1.2) saturate(1.5);
+    opacity: 0.5;
+    animation: parallax 10s linear infinite reverse;
+  }
+
+  @keyframes parallax {
+    0% { background-position: bottom left; }
+    100% { background-position: bottom right; }
+  }
+  #rain-overlay {
+    background: url('/src/static/rain.gif'); /* Replace with a suitable animated rain GIF */
+    background-size: cover;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .input-group input:focus + label,
+  .input-group input:not(:placeholder-shown) + label {
+    @apply -translate-y-4 scale-75;
+  }
+
+  .password-strength {
+    height: 4px;
+    transition: all 0.3s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes wave {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @keyframes jump {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0) rotateX(0deg) scaleY(1);}
+    40% {transform: translateY(-10px) rotateX(20deg) scaleY(1.1);}
+    60% {transform: translateY(-5px) rotateX(10deg) scaleY(1.05);}
+  }
+  .glowing-border {
+    box-shadow: 0 0 10px 2px rgba(0, 255, 255, 0.5);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .pulse {
+    animation: pulse-animation 2s ease-in-out infinite;
+  }
+  @keyframes pulse-animation {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .spark{
+    position: absolute;
+    background: rgba(0, 255, 255, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .spark-animation {
+    animation: spark-fade 0.5s ease-out forwards;
+  }
+  @keyframes spark-fade {
+    0% { transform: scale(0.2); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+</style>
+
+<script>
+  import { signup } from '../lib/authClient';
+  import type { AuthError } from '../lib/authClient';
+
+  const form = document.getElementById('signupForm') as HTMLFormElement;
+  const errorDiv = document.getElementById('errorMessage')!;
+  const errorMessage = errorDiv.querySelector('.message')!;
+  const errorDetails = errorDiv.querySelector('.details')!;
+  const characterContainer = document.getElementById('character-container')!;
+  const character = document.getElementById('character') as unknown as SVGSVGElement;
+  const characterBody = document.getElementById('characterBody') as unknown as SVGGElement;
+  const rasengan = document.getElementById('rasengan') as unknown as SVGGElement;
+  const password = document.getElementById('password') as HTMLInputElement;
+  const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement;
+  const loadingIcon = document.getElementById('loadingIcon')!;
+  const submitButtonText = document.getElementById('submitButtonText')!;
+  const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+  function animateCharacter(animation: string, duration: number = 500) {
+    characterBody.style.animation = `${animation} ${duration}ms ease-in-out forwards`;
+    setTimeout(() => {
+      characterBody.style.animation = '';
+      characterBody.style.transform = '';
+    }, duration);
+  }
+
+  function createSpark(x: number, y: number, target: HTMLElement) {
+    const spark = document.createElement('span');
+    spark.classList.add('spark');
+    spark.style.left = `${x - target.offsetLeft}px`;
+    spark.style.top = `${y-target.offsetTop}px`;
+    target.appendChild(spark);
+    spark.classList.add('spark-animation');
+    setTimeout(() => {
+      spark.remove();
+    }, 500);
+  }
+
+  // Clear error messages
+  function clearErrors() {
+    errorDiv.classList.add('hidden');
+    errorMessage.textContent = '';
+    errorDetails.innerHTML = '';
+    document.querySelectorAll('.error-text').forEach(el => {
+      el.textContent = '';
+      el.classList.add('hidden');
+    });
+  }
+
+  // Display field-specific errors
+  function showFieldError(fieldId: string, message: string) {
+    const field = document.getElementById(fieldId);
+    const errorText = field?.nextElementSibling as HTMLElement;
+    if (errorText) {
+      errorText.textContent = message;
+      errorText.classList.remove('hidden');
+    }
+    characterContainer.classList.add('shake');
+    setTimeout(() => characterContainer.classList.remove('shake'), 500);
+    animateCharacter('shake');
+  }
+
+  // Add password strength indicator
+  const passwordInput = document.getElementById('password') as HTMLInputElement;
+  const strengthIndicator = document.createElement('div');
+  strengthIndicator.className = 'password-strength mt-1 rounded';
+  passwordInput.parentElement?.appendChild(strengthIndicator);
+
+  passwordInput.addEventListener('input', () => {
+    const strength = calculatePasswordStrength(passwordInput.value);
+    updateStrengthIndicator(strength);
+    if (strength === 0) {
+      animateCharacter('shake', 300);
+    } else if (strength === 1) {
+      animateCharacter('wave', 500);
+    } else if (strength === 2) {
+      animateCharacter('wave', 700)
+    }
+    else if(strength === 3) {
+      animateCharacter('wave', 900)
+    } else {
+      rasengan.style.opacity = '1';
+      rasengan.style.transform = 'scale(1)';
+      setTimeout(() => {
+        rasengan.style.opacity = '0';
+        rasengan.style.transform = 'scale(0.5)';
+      }, 1000);
+      animateCharacter('jump', 1000);
+    }
+  });
+
+  function calculatePasswordStrength(password: string): number {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.match(/[A-Z]/)) strength++;
+    if (password.match(/[0-9]/)) strength++;
+    if (password.match(/[^A-Za-z0-9]/)) strength++;
+    return strength;
+  }
+
+  function updateStrengthIndicator(strength: number) {
+    const colors = ['bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
+    strengthIndicator.className = `password-strength mt-1 rounded ${colors[strength - 1]}`;
+    strengthIndicator.style.width = `${(strength / 4) * 100}%`;
+  }
+
+  // Add form submission animation
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+    animateCharacter('wave', 500);
+    if (password.value !== confirmPassword.value) {
+      showFieldError('confirmPassword', 'Passwords do not match');
+      return;
+    }
+    const username = (document.getElementById('username') as HTMLInputElement).value;
+    const email = (document.getElementById('email') as HTMLInputElement).value;
+
+    submitButtonText.style.opacity = '0';
+    loadingIcon.style.opacity = '1';
+    try {
+      const response = await signup(username, email, password.value);
+      animateCharacter('jump', 800);
+      setTimeout(() => {
+        window.location.href = '/login?message=Account created successfully! Please login.';
+      }, 1000);
+    } catch (error) {
+      form.classList.add('shake');
+      setTimeout(() => form.classList.remove('shake'), 500);
+      const authError = error as AuthError;
+      errorDiv.classList.remove('hidden');
+      errorMessage.textContent = authError.message;
+
+      // Display field-specific errors if available
+      if (authError.details) {
+        Object.entries(authError.details).forEach(([field, message]) => {
+          if (message) {
+            showFieldError(field, message);
+          }
+        });
+      }
+    } finally {
+      loadingIcon.style.opacity = '0';
+      submitButtonText.style.opacity = '1';
+    }
+  });
+
+  // Add input animation handlers
+  const inputs = document.querySelectorAll('input');
+  inputs.forEach(input => {
+    input.addEventListener('focus', () => {
+      input.parentElement?.classList.add('scale-105', 'glowing-border', 'pulse');
+      if (input.id === 'username') {
+        animateCharacter('wave');
+      }
+      if (input.parentElement && input.parentElement instanceof HTMLElement) {
+        input.parentElement.style.transform = 'rotateY(10deg)';
+      }
+    });
+    input.addEventListener('blur', () => {
+      input.parentElement?.classList.remove('scale-105', 'glowing-border', 'pulse');
+      if (input.parentElement && input.parentElement instanceof HTMLElement) {
+        input.parentElement.style.transform = 'rotateY(0deg)';
+      }
+    });
+    input.addEventListener('input', () => {
+      if (input.value) {
+        input.nextElementSibling?.classList.add('filled');
+      } else {
+        input.nextElementSibling?.classList.remove('filled');
+      }
+    });
+  });
+  button.addEventListener('click', (e) => {
+    const rect = button.getBoundingClientRect();
+    createSpark(e.clientX, e.clientY, button);
+  });
+</script>

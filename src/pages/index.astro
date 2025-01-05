@@ -1,11 +1,120 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import MangaCard from '../components/MangaCard.astro';
+import { mangaService } from '../lib/services/mangaService';
+import { initDB } from '../lib/config/database';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// Fetch manga data
+await initDB();
+const page = 1;
+const limit = 20;
+const mangas = await mangaService.getPopularManga(limit, (page - 1) * limit);
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Manga Reader">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Popular Manga</h1>
+    
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      {mangas.map((manga) => (
+        <MangaCard manga={manga} />
+      ))}
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="hidden">
+      <div class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      </div>
+    </div>
+
+    <!-- Load More Button -->
+    <div class="flex justify-center mt-8">
+      <button
+        id="loadMore"
+        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      >
+        Load More
+      </button>
+    </div>
+  </main>
 </Layout>
+
+<script>
+  let currentPage = 1;
+  const loadMoreBtn = document.getElementById('loadMore');
+  const loadingDiv = document.getElementById('loading');
+  const mangaGrid = document.querySelector('.grid');
+
+  loadMoreBtn?.addEventListener('click', async () => {
+    try {
+      currentPage++;
+      loadMoreBtn.style.display = 'none';
+      loadingDiv?.classList.remove('hidden');
+
+      const response = await fetch(`/api/manga?page=${currentPage}`);
+      const newMangas = await response.json();
+
+      if (newMangas.length === 0) {
+        loadMoreBtn.style.display = 'none';
+        return;
+      }
+
+      // Add new manga cards to the grid
+      newMangas.forEach((manga: any) => {
+        const card = document.createElement('a');
+        card.href = `/manga/${manga._id}`;
+        card.className = 'manga-card';
+        card.innerHTML = `
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+            <div class="relative pb-[140%]">
+              <img 
+                src="${manga.coverUrl || '/placeholder.png'}" 
+                alt="${manga.title}"
+                class="absolute top-0 left-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-4">
+              <h2 class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
+                ${manga.title}
+              </h2>
+              <div class="mt-2 flex flex-wrap gap-1">
+                ${manga.tags?.slice(0, 2).map((tag: string) => `
+                  <span class="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                    ${tag}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        mangaGrid?.appendChild(card);
+      });
+
+      loadMoreBtn.style.display = 'block';
+    } catch (error) {
+      console.error('Error loading more manga:', error);
+    } finally {
+      loadingDiv?.classList.add('hidden');
+    }
+  });
+
+  // Hide loading animation after 3 seconds as a fallback
+  setTimeout(() => {
+    loadingDiv?.classList.add('hidden');
+  }, 3000);
+</script>
+
+<style>
+  .manga-card {
+    @apply block transition-transform duration-200 hover:-translate-y-1;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

@@ -1,22 +1,64 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import LoadingAnimation from '../components/LoadingAnimation.astro';
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} - Manga Reader</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <Header />
+    <LoadingAnimation />
+    <main class="container mx-auto px-4 py-8">
+      <slot />
+    </main>
+    <Footer />
+
+    <script>
+      // Hide the loading animation once the page has fully loaded
+      window.addEventListener('load', () => {
+        const loader = document.getElementById('loading-animation');
+        if (loader) {
+          loader.style.display = 'none';
+        }
+      });
+
+      // Optional: Show the loader on navigation start (for client-side navigations)
+      if (typeof window !== 'undefined') {
+        window.addEventListener('astro:navigate-start', () => {
+          const loader = document.getElementById('loading-animation');
+          if (loader) {
+            loader.style.display = 'flex';
+          }
+        });
+
+        window.addEventListener('astro:navigate-end', () => {
+          const loader = document.getElementById('loading-animation');
+          if (loader) {
+            loader.style.display = 'none';
+          }
+        });
+      }
+
+      // Ensure the loading animation is initially hidden after a short delay to prevent flicker
+      setTimeout(() => {
+        const loader = document.getElementById('loading-animation');
+        if (loader) {
+          loader.style.display = 'none';
+        }
+      }, 3000); // Hide after 3 seconds in case 'load' event doesn't fire
+    </script>
+  </body>
+</html>

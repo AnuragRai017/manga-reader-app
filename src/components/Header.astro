@@ -1,0 +1,236 @@
+---
+import SearchBar from './SearchBar.astro';
+import ThemeToggle from './ThemeToggle.astro';
+---
+<header class="bg-white dark:bg-gray-800 shadow-md">
+  <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center space-x-2">
+      <!-- Animated SVG Logo -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" class="w-32 h-16">
+        <defs>
+          <!-- Enhanced gradient definitions -->
+          <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#FF4D94">
+              <animate attributeName="stop-color" 
+                       values="#FF4D94;#FF1464;#FF4D94" 
+                       dur="3s" 
+                       repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" style="stop-color:#FF1464">
+              <animate attributeName="stop-color" 
+                       values="#FF1464;#FF4D94;#FF1464" 
+                       dur="3s" 
+                       repeatCount="indefinite"/>
+            </stop>
+          </linearGradient>
+
+          <!-- Pulsing aura gradient -->
+          <radialGradient id="auraGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" style="stop-color:#FFD700">
+              <animate attributeName="stop-color" 
+                       values="#FFD700;#FFA500;#FFD700" 
+                       dur="2s" 
+                       repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" style="stop-color:#FF6B00" stop-opacity="0"/>
+          </radialGradient>
+
+          <!-- Enhanced 3D effect -->
+          <filter id="3DEffect">
+            <feOffset dx="4" dy="4"/>
+            <feGaussianBlur stdDeviation="3"/>
+            <feComposite operator="out"/>
+            <feFlood flood-color="#000000" flood-opacity="0.6"/>
+            <feComposite operator="in"/>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <!-- Glow effect -->
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- Animated background elements -->
+        <g>
+          <!-- Multiple pulsing circles -->
+          <circle cx="200" cy="100" r="150" fill="url(#auraGradient)" opacity="0.6">
+            <animate attributeName="r" 
+                     values="140;160;140" 
+                     dur="2s" 
+                     repeatCount="indefinite"/>
+            <animate attributeName="opacity" 
+                     values="0.6;0.3;0.6" 
+                     dur="2s" 
+                     repeatCount="indefinite"/>
+          </circle>
+          
+          <circle cx="200" cy="100" r="130" fill="url(#auraGradient)" opacity="0.4">
+            <animate attributeName="r" 
+                     values="120;140;120" 
+                     dur="3s" 
+                     repeatCount="indefinite"/>
+          </circle>
+        </g>
+
+        <!-- Dynamic manga-style frame -->
+        <path d="M80 60 Q200 20 320 60 L320 140 Q200 180 80 140 Z" 
+              fill="#4A90E2" stroke="#2171CD" stroke-width="4" 
+              filter="url(#3DEffect)">
+          <animate attributeName="d" 
+                   values="M80 60 Q200 20 320 60 L320 140 Q200 180 80 140 Z;
+                           M90 55 Q200 15 310 55 L310 145 Q200 185 90 145 Z;
+                           M80 60 Q200 20 320 60 L320 140 Q200 180 80 140 Z" 
+                   dur="3s" 
+                   repeatCount="indefinite"/>
+        </path>
+
+        <!-- Animated energy lines -->
+        <g stroke="#FFD700" stroke-width="2" filter="url(#glow)">
+          <!-- Rotating energy ring -->
+          <circle cx="200" cy="100" r="90" fill="none" stroke-dasharray="20,10">
+            <animateTransform attributeName="transform" 
+                              type="rotate" 
+                              from="0 200 100" 
+                              to="360 200 100" 
+                              dur="8s" 
+                              repeatCount="indefinite"/>
+          </circle>
+          
+          <!-- Dynamic speed lines -->
+          <g>
+            <line x1="50" y1="100" x2="90" y2="100">
+              <animate attributeName="x2" 
+                       values="90;70;90" 
+                       dur="0.5s" 
+                       repeatCount="indefinite"/>
+              <animate attributeName="opacity" 
+                       values="1;0.2;1" 
+                       dur="0.5s" 
+                       repeatCount="indefinite"/>
+            </line>
+            <line x1="310" y1="100" x2="350" y2="100">
+              <animate attributeName="x1" 
+                       values="310;330;310" 
+                       dur="0.5s" 
+                       repeatCount="indefinite"/>
+              <animate attributeName="opacity" 
+                       values="1;0.2;1" 
+                       dur="0.5s" 
+                       repeatCount="indefinite"/>
+            </line>
+          </g>
+        </g>
+
+        <!-- Animated text -->
+        <g filter="url(#glow)">
+          <text x="200" y="110" font-family="Arial Black" font-size="40" 
+                text-anchor="middle" fill="url(#textGradient)" 
+                filter="url(#3DEffect)" 
+                style="font-weight: 900; letter-spacing: 2px;">
+            MANGA
+            <animate attributeName="y" 
+                     values="110;108;110" 
+                     dur="2s" 
+                     repeatCount="indefinite"/>
+          </text>
+          <text x="200" y="150" font-family="Arial Black" font-size="40" 
+                text-anchor="middle" fill="url(#textGradient)" 
+                filter="url(#3DEffect)" 
+                style="font-weight: 900; letter-spacing: 2px;">
+            PADHO
+            <animate attributeName="y" 
+                     values="150;152;150" 
+                     dur="2s" 
+                     repeatCount="indefinite"/>
+          </text>
+        </g>
+
+        <!-- Additional dynamic elements -->
+        <g stroke="#FFD700" stroke-width="1">
+          <!-- Corner flares -->
+          <path d="M30 30 L60 60" opacity="0.5">
+            <animate attributeName="opacity" 
+                     values="0.5;0.1;0.5" 
+                     dur="1s" 
+                     repeatCount="indefinite"/>
+          </path>
+          <path d="M340 30 L370 60" opacity="0.5">
+            <animate attributeName="opacity" 
+                     values="0.5;0.1;0.5" 
+                     dur="1s" 
+                     repeatCount="indefinite"/>
+          </path>
+        </g>
+      </svg>
+      <!-- Manga Padho Text -->
+      <span class="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
+        Manga Padho
+      </span>
+    </a>
+    
+    <div class="flex items-center space-x-4">
+      <SearchBar />
+      <a href="/browse" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+        Browse
+      </a>
+      <ThemeToggle />
+      <div id="auth-buttons">
+        <!-- Auth buttons will be dynamically inserted here -->
+      </div>
+    </div>
+  </nav>
+</header>
+
+<script>
+  import { getCurrentUser, logout } from '../lib/authClient';
+
+  function updateAuthButtons() {
+    const authButtonsContainer = document.getElementById('auth-buttons');
+    if (!authButtonsContainer) return;
+
+    const user = getCurrentUser();
+
+    if (user) {
+      authButtonsContainer.innerHTML = `
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600 dark:text-gray-300">Welcome, ${user.username}!</span>
+          <button id="logout-button" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            Logout
+          </button>
+        </div>
+      `;
+
+      // Add logout handler
+      document.getElementById('logout-button')?.addEventListener('click', async () => {
+        await logout();
+      });
+    } else {
+      authButtonsContainer.innerHTML = `
+        <a href="/login" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+          Login
+        </a>
+        <a href="/signup" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">
+          Sign Up
+        </a>
+      `;
+    }
+  }
+
+  // Update auth buttons on page load
+  updateAuthButtons();
+
+  // Update auth buttons when storage changes (in case of login/logout in another tab)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'user' || e.key === 'token') {
+      updateAuthButtons();
+    }
+  });
+</script>

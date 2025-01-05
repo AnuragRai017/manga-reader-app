@@ -1,0 +1,52 @@
+---
+import type { Chapter } from '../lib/models/manga';
+
+interface Props {
+  chapters: Chapter[];
+  mangaId: string;
+}
+
+const { chapters = [], mangaId } = Astro.props;
+
+const sortedChapters = [...chapters].sort((a, b) => {
+  const aNum = parseFloat(a.number || '0');
+  const bNum = parseFloat(b.number || '0');
+  return bNum - aNum;
+});
+---
+
+<div class="space-y-2">
+  {sortedChapters.length > 0 ? (
+    sortedChapters.map((chapter) => (
+      <a
+        href={`/manga/${mangaId}/chapter/${chapter.chapterId}`}
+        class="block p-4 rounded-lg bg-white dark:bg-gray-800 shadow hover:shadow-md transition-shadow"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="font-medium text-gray-900 dark:text-white">
+              Chapter {chapter.number || 'N/A'}
+            </span>
+            {chapter.title && (
+              <span class="ml-2 text-gray-600 dark:text-gray-300">
+                - {chapter.title}
+              </span>
+            )}
+          </div>
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            {chapter.publishedAt instanceof Date 
+              ? chapter.publishedAt.toLocaleDateString()
+              : chapter.publishedAt
+                ? new Date(chapter.publishedAt).toLocaleDateString()
+                : 'N/A'
+            }
+          </span>
+        </div>
+      </a>
+    ))
+  ) : (
+    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+      No chapters available
+    </div>
+  )}
+</div> 

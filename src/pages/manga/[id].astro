@@ -1,0 +1,79 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { mangaService } from '../../lib/services/mangaService';
+import { mangadex } from '../../lib/mangadex';
+import ChapterList from '../../components/ChapterList.astro';
+import { initDB } from '../../lib/config/database';
+import { logger } from '../../lib/utils/logger';
+
+// Initialize database connection
+await initDB();
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/404');
+}
+
+let manga;
+
+try {
+  manga = await mangaService.getManga(id);
+  if (!manga) {
+    logger.error('Manga not found', { mangaId: id });
+    return Astro.redirect('/404');
+  }
+} catch (error) {
+  logger.error('Error loading manga:', error);
+  return Astro.redirect('/404');
+}
+---
+
+<Layout title={manga.title}>
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Manga Cover and Info -->
+      <div class="md:col-span-1">
+        <img
+          src={manga.coverUrl}
+          alt={manga.title}
+          class="w-full rounded-lg shadow-lg"
+          loading="lazy"
+          onerror="this.onerror=null; this.src='/placeholder.jpg'"
+        />
+        <div class="mt-4 space-y-2">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {manga.title}
+          </h1>
+          <p class="text-gray-600 dark:text-gray-300">
+            By {manga.authors.join(', ')}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            {manga.tags.map((tag) => (
+              <span class="px-2 py-1 text-sm rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Chapters List -->
+      <div class="md:col-span-2">
+        <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+          Chapters
+        </h2>
+        <ChapterList chapters={manga.chapters} mangaId={manga.mangadexId} />
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="mt-8">
+      <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+        Description
+      </h2>
+      <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+        {manga.description}
+      </p>
+    </div>
+  </div>
+</Layout>

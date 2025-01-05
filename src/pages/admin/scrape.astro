@@ -1,0 +1,148 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Manga Scraper Admin">
+  <div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Manga Scraper Admin</h1>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <form id="scrapeForm" class="space-y-6">
+          <div>
+            <label for="startPage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Page</label>
+            <input
+              type="number"
+              id="startPage"
+              name="startPage"
+              min="1"
+              value="1"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label for="maxPages" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Max Pages to Scrape</label>
+            <input
+              type="number"
+              id="maxPages"
+              name="maxPages"
+              min="1"
+              value="1"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Start Scraping
+          </button>
+        </form>
+
+        <!-- Progress Section -->
+        <div id="progress" class="mt-8 hidden">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Progress</h2>
+          
+          <div class="space-y-4">
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+              <div class="flex justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+                <span id="status" class="text-sm text-gray-900 dark:text-white">Initializing...</span>
+              </div>
+              <div class="flex justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manga Processed:</span>
+                <span id="mangaCount" class="text-sm text-gray-900 dark:text-white">0</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Current Page:</span>
+                <span id="currentPage" class="text-sm text-gray-900 dark:text-white">-</span>
+              </div>
+            </div>
+
+            <!-- Log Section -->
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Log</h3>
+              <div id="log" class="h-64 overflow-y-auto text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <!-- Log entries will be added here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const form = document.getElementById('scrapeForm') as HTMLFormElement;
+  const progress = document.getElementById('progress') as HTMLDivElement;
+  const status = document.getElementById('status') as HTMLSpanElement;
+  const mangaCount = document.getElementById('mangaCount') as HTMLSpanElement;
+  const currentPage = document.getElementById('currentPage') as HTMLSpanElement;
+  const log = document.getElementById('log') as HTMLDivElement;
+
+  function addLogEntry(message: string, type: 'info' | 'success' | 'error' = 'info') {
+    const entry = document.createElement('div');
+    entry.className = `py-1 ${
+      type === 'error' ? 'text-red-600 dark:text-red-400' :
+      type === 'success' ? 'text-green-600 dark:text-green-400' :
+      'text-gray-600 dark:text-gray-400'
+    }`;
+    entry.textContent = message;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const startPage = parseInt((document.getElementById('startPage') as HTMLInputElement).value);
+    const maxPages = parseInt((document.getElementById('maxPages') as HTMLInputElement).value);
+
+    // Show progress section
+    progress.classList.remove('hidden');
+    status.textContent = 'Scraping in progress...';
+    currentPage.textContent = startPage.toString();
+    mangaCount.textContent = '0';
+    log.innerHTML = '';
+    addLogEntry('Starting scraping process...', 'info');
+
+    try {
+      const response = await fetch('/api/admin/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          page: startPage,
+          maxPages: maxPages,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        status.textContent = 'Completed';
+        mangaCount.textContent = data.results.length.toString();
+        addLogEntry(`Successfully scraped ${data.results.length} manga`, 'success');
+
+        // Log individual results
+        data.results.forEach((result: any) => {
+          if (result.status === 'success') {
+            addLogEntry(`✓ ${result.title} (${result.chaptersCount} chapters)`, 'success');
+          } else {
+            addLogEntry(`✗ Failed to scrape: ${result.url}`, 'error');
+          }
+        });
+      } else {
+        status.textContent = 'Failed';
+        addLogEntry(`Error: ${data.message}`, 'error');
+      }
+    } catch (error) {
+      status.textContent = 'Failed';
+      addLogEntry(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  });
+</script> 

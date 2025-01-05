@@ -1,0 +1,164 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { dataLoader } from '../../lib/dataLoader';
+
+const progress = dataLoader.getProgress();
+---
+
+<Layout title="Load Data">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          Data Loading Status
+        </h1>
+
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-gray-700 dark:text-gray-300">Status:</span>
+            <span id="status" class={`font-semibold ${progress.isLoading ? 'text-yellow-500' : 'text-green-500'}`}>
+              {progress.isLoading ? 'Loading...' : 'Ready'}
+            </span>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-gray-700 dark:text-gray-300">Total Manga:</span>
+            <span id="total" class="font-semibold text-gray-900 dark:text-white">{progress.total}</span>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-gray-700 dark:text-gray-300">Successfully Loaded:</span>
+            <span id="loaded" class="font-semibold text-green-500">{progress.loadedCount}</span>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-gray-700 dark:text-gray-300">Failed:</span>
+            <span id="failed" class="font-semibold text-red-500">{progress.failedCount}</span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="relative pt-1">
+            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200 dark:bg-blue-900/20">
+              <div
+                id="progressBar"
+                style={`width: ${progress.current}%`}
+                class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-300"
+              ></div>
+            </div>
+          </div>
+
+          <div id="errorContainer" class={`mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md ${progress.lastError ? '' : 'hidden'}`}>
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Last Error:</h3>
+            <p id="lastError" class="mt-2 text-sm text-red-700 dark:text-red-300">{progress.lastError}</p>
+          </div>
+
+          <div class="mt-6">
+            <button
+              id="loadDataBtn"
+              class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={progress.isLoading}
+            >
+              {progress.isLoading ? 'Loading in progress...' : 'Start Loading Data'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const loadDataBtn = document.getElementById('loadDataBtn');
+  const statusEl = document.getElementById('status');
+  const totalEl = document.getElementById('total');
+  const loadedEl = document.getElementById('loaded');
+  const failedEl = document.getElementById('failed');
+  const progressBarEl = document.getElementById('progressBar');
+  const errorContainerEl = document.getElementById('errorContainer');
+  const lastErrorEl = document.getElementById('lastError');
+  
+  async function updateProgress() {
+    try {
+      const response = await fetch('/api/admin/load-initial-data');
+      const data = await response.json();
+      
+      if (data.success && data.progress) {
+        const { isLoading, total, loadedCount, failedCount, current, lastError } = data.progress;
+        
+        // Update status
+        if (statusEl) {
+          statusEl.textContent = isLoading ? 'Loading...' : 'Ready';
+          statusEl.className = `font-semibold ${isLoading ? 'text-yellow-500' : 'text-green-500'}`;
+        }
+        
+        // Update counts
+        if (totalEl) totalEl.textContent = total;
+        if (loadedEl) loadedEl.textContent = loadedCount;
+        if (failedEl) failedEl.textContent = failedCount;
+        
+        // Update progress bar
+        if (progressBarEl) {
+          progressBarEl.style.width = `${current}%`;
+        }
+        
+        // Update error message
+        if (errorContainerEl && lastErrorEl) {
+          if (lastError) {
+            errorContainerEl.classList.remove('hidden');
+            lastErrorEl.textContent = lastError;
+          } else {
+            errorContainerEl.classList.add('hidden');
+          }
+        }
+        
+        // Update button state
+        if (loadDataBtn instanceof HTMLButtonElement) {
+          loadDataBtn.disabled = isLoading;
+          loadDataBtn.textContent = isLoading ? 'Loading in progress...' : 'Start Loading Data';
+        }
+        if (isLoading) {
+          setTimeout(updateProgress, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+  }
+  
+  if (loadDataBtn) {
+    loadDataBtn.addEventListener('click', async () => {
+      try {
+        if (loadDataBtn instanceof HTMLButtonElement) {
+          loadDataBtn.disabled = true;
+          loadDataBtn.textContent = 'Loading in progress...';
+          
+          const response = await fetch('/api/admin/load-initial-data', {
+            method: 'POST'
+          });
+        }
+        const response = await fetch('/api/admin/load-initial-data', {
+          method: 'POST'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to start data load');
+        }
+        
+        // Start progress updates
+        updateProgress();
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to start data load: ' + error.message);
+        if (loadDataBtn instanceof HTMLButtonElement) {
+          loadDataBtn.disabled = false;
+          loadDataBtn.textContent = 'Start Loading Data';
+        }
+      }
+    });
+    
+    // Start progress updates if already loading
+    if (statusEl?.textContent === 'Loading...') {
+      updateProgress();
+    }
+  }
+</script>

@@ -1,0 +1,169 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import { mangaService } from '../../../../lib/services/mangaService';
+import { initDB } from '../../../../lib/db/init';
+import { logger } from '../../../../lib/utils/logger';
+import type { Manga } from '../../../../lib/models/manga';
+
+// Initialize database connection
+await initDB();
+
+const { id, chapterId } = Astro.params;
+if (!id || !chapterId) {
+  return Astro.redirect('/404');
+}
+
+let manga;
+let currentChapter;
+let sortedChapters;
+let currentIndex;
+let prevChapter;
+let nextChapter;
+let noPagesAvailable = false; // Flag to indicate if no pages are available
+
+try {
+  const fetchedManga = await mangaService.getManga(id);
+  if (!fetchedManga) {
+    logger.error('Manga not found', { mangaId: id });
+    return Astro.redirect('/404');
+  }
+
+  // Declare manga with type annotation after the fetch
+  manga = fetchedManga as Manga;
+
+  // Find the current chapter
+  const foundChapter = manga.chapters.find(ch => ch.chapterId === chapterId);
+  if (!foundChapter) {
+    logger.error('Chapter not found', { mangaId: id, chapterId });
+    return Astro.redirect('/404');
+  }
+
+  if (!foundChapter.pages || foundChapter.pages.length === 0) {
+    try {
+      // Ensure this function is defined in MangaService
+      foundChapter.pages = await mangaService.getChapterPages(chapterId);
+    } catch (err) {
+      logger.error('Failed to fetch pages from at-home server', { err, mangaId: id, chapterId });
+    }
+  }
+
+  currentChapter = {
+    chapterId: foundChapter.chapterId,
+    number: String(foundChapter.number),
+    title: foundChapter.title,
+    pages: foundChapter.pages
+  } as {
+    chapterId: string;
+    number: string;
+    title?: string;
+    pages: string[];
+  };
+
+  if (foundChapter.pages.length === 0) {
+    logger.error('No pages available to read', { mangaId: id, chapterId });
+    noPagesAvailable = true; // Set the flag
+  } else {
+
+    // Sort chapters by number for navigation
+    sortedChapters = [...manga.chapters]
+    .map(ch => ({
+      chapterId: ch.chapterId,
+      number: String(ch.number),
+      title: ch.title,
+      pages: ch.pages
+    }))
+    .sort((a, b) => {
+      const aNum = parseFloat(a.number || '0');
+      const bNum = parseFloat(b.number || '0');
+      return aNum - bNum;
+    }) as {
+      chapterId: string;
+      number: string;
+      title?: string;
+      pages: string[];
+    }[];
+
+  currentIndex = sortedChapters.findIndex(ch => ch.chapterId === chapterId);
+  prevChapter = currentIndex > 0 ? sortedChapters[currentIndex - 1] : null;
+  nextChapter = currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null;
+
+
+  logger.info('Loading chapter page', {
+    mangaId: id,
+    chapterId,
+    chapterNumber: currentChapter.number
+  });
+}
+} catch (error) {
+  logger.error('Error loading chapter', { error, mangaId: id, chapterId });
+  return Astro.redirect('/error');
+}
+---
+
+{noPagesAvailable ? (
+  <Layout title="No Pages Available">
+    <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div class="text-center">
+        <h1 class="text-2xl font-bold text-red-500">No Pages Available</h1>
+        <p class="mt-4 text-gray-700 dark:text-gray-300">
+          Currently, there are no pages available to read for this chapter.
+        </p>
+        <a href={`/manga/${manga.mangadexId}`} class="mt-6 inline-block text-blue-600 dark:text-blue-400 hover:underline">
+          ← Back to {manga.title}
+        </a>
+      </div>
+    </div>
+  </Layout>
+) : (
+  <Layout title={`${manga.title} - Chapter ${currentChapter.number}`}>
+    <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <!-- Navigation Bar -->
+      <div class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div class="flex justify-between items-center">
+            <a href={`/manga/${manga.mangadexId}`} class="text-gray-900 dark:text-white hover:underline">
+              ← Back to {manga.title}
+            </a>
+            <div class="text-lg font-semibold text-gray-900 dark:text-white">
+              Chapter {currentChapter.number}
+              {currentChapter.title && ` - ${currentChapter.title}`}
+            </div>
+            <div class="flex space-x-4">
+              {prevChapter && (
+                <a
+                  href={`/manga/${manga.mangadexId}/chapter/${prevChapter.chapterId}`}
+                  class="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  ← Previous Chapter
+                </a>
+              )}
+              {nextChapter && (
+                <a
+                  href={`/manga/${manga.mangadexId}/chapter/${nextChapter.chapterId}`}
+                  class="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Next Chapter →
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chapter Content -->
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="space-y-4">
+          {currentChapter.pages.map((page, index) => (
+            <img
+              src={page}
+              alt={`Page ${index + 1}`}
+              class="w-full rounded-lg shadow-lg"
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  </Layout>
+)}
