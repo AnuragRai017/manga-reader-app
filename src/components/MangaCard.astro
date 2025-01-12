@@ -1,92 +1,136 @@
 ---
-import type { Manga } from '../lib/models/manga';
+import type { WithId } from 'mongodb';
+import type { Manga } from '../types/manga';
 import PlaceholderImage from './PlaceholderImage.astro';
 
 interface Props {
-  manga: Manga;
+  manga: WithId<Manga>;
 }
 
 const { manga } = Astro.props;
+
+// Ensure required fields have fallback values
+const {
+  title = 'Untitled',
+  description = 'No description available.',
+  mangadexId = '',
+  contentRating = 'safe',
+  status = 'ongoing',
+  tags = [],
+  authors = [],
+  chapters = [],
+  rating = 'N/A',
+  coverUrl = null
+} = manga;
 ---
 
-<div class="group relative transform-hover dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300">
-  <div class="card-inner relative">
-    <a href={`/manga/${manga.mangadexId}`} class="block">
-      <div class="relative w-full h-64">
-        {manga.coverUrl ? (
-          <img
-            src={manga.coverUrl}
-            alt={manga.title}
-            class="w-full h-full object-cover rounded-t-lg"
-            loading="lazy"
-            decoding="async"
-            onerror="this.onerror=null; this.src='/placeholder.jpg'"
-          />
-        ) : (
-          <PlaceholderImage height={256} />
-        )}
+<div class="manga-card group relative overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-2xl dark:bg-gray-800">
+  <!-- Main Image Container -->
+  <div class="aspect-[2/3] relative overflow-hidden">
+    {coverUrl ? (
+      <img
+        src={coverUrl}
+        alt={title}
+        class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 group-hover:blur-sm"
+        loading="lazy"
+        decoding="async"
+        onerror="this.onerror=null; this.src='/placeholder.jpg'"
+      />
+    ) : (
+      <PlaceholderImage height={256} />
+    )}
+
+    <!-- Info Overlay (Always Visible) -->
+    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4">
+      <h3 class="text-lg font-bold text-white line-clamp-2 mb-2">
+        {title}
+      </h3>
+      <div class="flex flex-wrap gap-1 mb-2">
+        {tags?.slice(0, 3).map((tag) => (
+          <span class="inline-flex items-center rounded-full bg-blue-500/30 px-2 py-0.5 text-xs font-medium text-white">
+            {tag}
+          </span>
+        ))}
       </div>
-      <div class="p-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 group-hover:text-blue-400 transition-colors duration-300">
-          {manga.title}
-        </h3>
-        {manga.authors?.length > 0 && (
-          <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
-            By {manga.authors.join(', ')}
-          </p>
-        )}
-        <div class="flex flex-wrap gap-1 mt-2">
-          {manga.tags?.slice(0, 3).map((tag) => (
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-      <!-- Enhanced Details Overlay -->
-      <div class="absolute inset-0 bg-black bg-opacity-75 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-start items-center p-4 max-h-64 overflow-y-auto rounded-b-lg">
-        <p class="mb-2 text-sm text-center">
-          {manga.description || 'No description available.'}
-        </p>
-        <div class="flex items-center space-x-2 mb-4">
-          <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.98a1 1 0 00.95.69h4.164c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.286 3.98c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.84-.197-1.54-1.118l1.286-3.98a1 1 0 00-.364-1.118L2.392 9.407c-.783-.57-.38-1.81.588-1.81h4.164a1 1 0 00.95-.69l1.286-3.98z" />
+    </div>
+
+    <!-- Hover Overlay -->
+    <div class="absolute inset-0 bg-black/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-center items-center p-4">
+      <!-- Stats Row -->
+      <div class="flex items-center justify-center space-x-4 mb-4 text-white">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.98a1 1 0 00.95.69h4.164c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.286 3.98c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.84-.197-1.54-1.118l1.286-3.98a1 1 0 00-.364-1.118L2.392 9.407c-.783-.57-.38-1.81.588-1.81h4.164a1 1 0 00.95-.69l1.286-3.98z"></path>
           </svg>
-          <span>{manga.rating || 'N/A'}</span>
+          <span class="text-sm">{rating}</span>
         </div>
-        <div class="mb-4 text-sm">
-          <span class="font-medium">Chapters:</span> {manga.chapters.length || '0'}
+        <span class="text-gray-400">•</span>
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          <span class="text-sm">{chapters.length} CH</span>
         </div>
-        <a href={`/manga/${manga.mangadexId}`} class="mt-2 text-blue-400 hover:underline">
-          Read More
-        </a>
       </div>
-    </a>
+
+      <!-- Description -->
+      <p class="text-sm text-gray-300 text-center line-clamp-3 mb-6">
+        {description}
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col gap-2 w-full max-w-[200px]">
+        <a
+          href={`/manga/${mangadexId}`}
+          class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-center rounded-md transition-colors duration-200 flex items-center justify-center"
+        >
+          <span>Read Now</span>
+          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </a>
+        <button class="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-center rounded-md transition-colors duration-200">
+          Add to Library
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
 <style>
-  /* Card Lifting and 3D Rotation */
-  .transform-hover {
+  .manga-card {
     transform-style: preserve-3d;
-    transition: transform 0.3s ease-in-out;
-  }
-  .transform-hover:hover {
-      transform: translateY(-5px) rotateX(2deg);
-  }
-  .card-inner {
-    perspective: 1000px; /* Perspective for the 3D effect */
+    backface-visibility: hidden;
+    user-select: none;
   }
 
-  /* Smooth transition for scaling */
-  .transform-hover:hover {
-    transform: translateY(-5px) rotateX(2deg);
+  .manga-card:hover {
+    transform: translateY(-4px);
   }
-  
-  .group:hover .absolute {
-    opacity: 1;
+
+  /* Smooth text transitions */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
-  .absolute {
-    transition: opacity 0.3s ease-in-out;
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Enhance animation performance */
+  .manga-card * {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Button hover effects */
+  .manga-card .bg-blue-500:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
   }
 </style>

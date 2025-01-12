@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Get cover art
     const coverArt = mangaDetails.relationships.find(rel => rel.type === 'cover_art');
-    const coverUrl = coverArt ? mangadex.getCoverArtUrl(mangaId, coverArt.id) : '';
+    const coverUrl = coverArt ? mangadex.getCoverArtUrl(mangaId, coverArt.id, coverArt.attributes?.fileName || '') : '';
 
     // Get author
     const author = mangaDetails.relationships.find(rel => rel.type === 'author');
@@ -41,17 +41,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     const mangaCollection = MangaModel.collection;
 
+    // Check if manga already exists
+    const existingManga = await mangaCollection.findOne({ mangadexId: mangaId });
+
     // Convert to our Manga type
     const mangaDoc: Manga = {
+      _id: existingManga?._id || undefined,
+      mangadexId: mangaId,
       title: mangaDetails.attributes.title.en || Object.values(mangaDetails.attributes.title)[0],
       description: mangaDetails.attributes.description.en || Object.values(mangaDetails.attributes.description)[0],
-      coverImage: coverUrl,
-      author: authorName,
+      coverUrl: coverUrl,
+      authors: [authorName],
+      artists: [authorName], // Assuming author is also the artist, adjust if needed
       status: mangaDetails.attributes.status,
-      genres: mangaDetails.attributes.tags
+      contentRating: mangaDetails.attributes.contentRating,
+      tags: mangaDetails.attributes.tags
         .filter(tag => tag.attributes.group === 'genre')
         .map(tag => tag.attributes.name.en),
-      chapters: chapters.data.map(chapter => ({
+      chapters: chapters.map(chapter => ({
         mangaId: mangaId,
         chapterNumber: parseFloat(chapter.attributes.chapter || '0'),
         title: chapter.attributes.title || `Chapter ${chapter.attributes.chapter}`,
@@ -59,11 +66,10 @@ export const POST: APIRoute = async ({ request }) => {
         uploadDate: new Date(chapter.attributes.publishAt),
       })),
       createdAt: new Date(mangaDetails.attributes.createdAt),
-      updatedAt: new Date(mangaDetails.attributes.updatedAt),
+      updatedAt: new Date()
     };
 
-    // Check if manga already exists
-    const existingManga = await mangaCollection.findOne({ title: mangaDoc.title });
+    // Update existing manga if found by mangadexId
     
     if (existingManga) {
       // Update existing manga
@@ -72,10 +78,10 @@ export const POST: APIRoute = async ({ request }) => {
         { 
           $set: {
             description: mangaDoc.description,
-            coverImage: mangaDoc.coverImage,
-            author: mangaDoc.author,
+            coverUrl: mangaDoc.coverUrl,
+            authors: mangaDoc.authors,
             status: mangaDoc.status,
-            genres: mangaDoc.genres,
+            tags: mangaDoc.tags,
             chapters: mangaDoc.chapters,
             updatedAt: new Date()
           }

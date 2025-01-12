@@ -71,7 +71,17 @@ const progress = dataLoader.getProgress();
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Currently Processing</h3>
           <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <div class="flex items-start space-x-4">
-              <div id="mangaCover" class="w-24 h-32 bg-gray-200 dark:bg-gray-600 rounded-lg"></div>
+              <div class="w-24 h-32 relative">
+                <img
+                  id="mangaCover"
+                  src="/placeholder.jpg"
+                  alt="Manga Cover"
+                  class="w-full h-full object-cover rounded-lg"
+                />
+                <div class="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center rounded-lg opacity-0 transition-opacity group-hover:opacity-100">
+                  <span class="text-white text-xs">Loading...</span>
+                </div>
+              </div>
               <div class="flex-1">
                 <h4 id="mangaTitle" class="text-lg font-medium text-gray-900 dark:text-white"></h4>
                 <p id="mangaDesc" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"></p>
@@ -83,6 +93,19 @@ const progress = dataLoader.getProgress();
                   <div>
                     <span class="text-gray-500 dark:text-gray-400">Pages: </span>
                     <span id="pageCount" class="font-medium text-gray-900 dark:text-white"></span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500 dark:text-gray-400">Status: </span>
+                    <span id="mangaStatus" class="font-medium text-gray-900 dark:text-white"></span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500 dark:text-gray-400">Rating: </span>
+                    <span id="mangaRating" class="font-medium text-gray-900 dark:text-white"></span>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="flex flex-wrap gap-1">
+                    <span id="mangaTags" class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded"></span>
                   </div>
                 </div>
               </div>
@@ -149,12 +172,17 @@ const progress = dataLoader.getProgress();
       error: 'text-red-400'
     };
 
+    const timestamp = new Date().toLocaleTimeString();
     const logEntry = document.createElement('div');
-    logEntry.className = `${colors[type as keyof typeof colors]} mb-1`;
-    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logEntry.className = `mb-1 ${colors[type]}`;
+    logEntry.innerHTML = `[${timestamp}] ${message}`;
     
-    logConsoleEl.appendChild(logEntry);
-    logConsoleEl.scrollTop = logConsoleEl.scrollHeight;
+    logConsoleEl.insertBefore(logEntry, logConsoleEl.firstChild);
+
+    // Keep only last 100 messages
+    while (logConsoleEl.children.length > 100) {
+      logConsoleEl.removeChild(logConsoleEl.lastChild!);
+    }
   }
 
   type Manga = {
@@ -164,22 +192,52 @@ const progress = dataLoader.getProgress();
     chapters?: { pages?: number[] }[];
   };
 
-  function updateCurrentManga(manga: Manga) {
+  function updateCurrentManga(manga: any) {
     if (!currentMangaDetailsEl) return;
 
     currentMangaDetailsEl.classList.remove('hidden');
-    if (mangaCoverEl && manga.coverUrl) {
-      mangaCoverEl.style.backgroundImage = `url(${manga.coverUrl})`;
-      mangaCoverEl.style.backgroundSize = 'cover';
-      mangaCoverEl.style.backgroundPosition = 'center';
+    
+    // Update cover image with loading state
+    if (mangaCoverEl) {
+      (mangaCoverEl as HTMLImageElement).src = manga.coverUrl || '/placeholder.jpg';
+      (mangaCoverEl as HTMLImageElement).alt = manga.title;
+      mangaCoverEl.classList.toggle('opacity-50', !manga.coverUrl);
     }
+    
+    // Update manga details
     if (mangaTitleEl) mangaTitleEl.textContent = manga.title;
     if (mangaDescEl) mangaDescEl.textContent = manga.description;
     if (chapterCountEl) chapterCountEl.textContent = (manga.chapters?.length || '0').toString();
+    
+    // Update page count
     if (pageCountEl) {
-      const totalPages = manga.chapters?.reduce((sum: number, ch) => sum + (ch.pages?.length || 0), 0) || 0;
+      const totalPages = manga.chapters?.reduce((sum: number, ch: any) => sum + (ch.pages?.length || 0), 0) || 0;
       pageCountEl.textContent = totalPages.toString();
     }
+
+    // Update status
+    const statusEl = document.getElementById('mangaStatus');
+    if (statusEl) statusEl.textContent = manga.status;
+    
+    // Update rating
+    const ratingEl = document.getElementById('mangaRating');
+    if (ratingEl) ratingEl.textContent = manga.rating?.toFixed(1) || 'N/A';
+    
+    // Update tags
+    const tagsEl = document.getElementById('mangaTags');
+    if (tagsEl && manga.tags) {
+      tagsEl.innerHTML = manga.tags
+        .slice(0, 5)
+        .map((tag: string) => `
+          <span class="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+            ${tag}
+          </span>
+        `)
+        .join('');
+    }
+
+    // Add to log
+    addLogMessage(`Processing: ${manga.title} (${manga.chapters?.length || 0} chapters)`, 'info');
   }
 
   async function updateProgress() {
@@ -188,86 +246,78 @@ const progress = dataLoader.getProgress();
       const data = await response.json();
       
       if (data.success && data.progress) {
-        const { isLoading, total, loadedCount, failedCount, current, lastError, currentManga } = data.progress;
+        const { isLoading, total, loadedCount, failedCount, current, lastError, currentManga, currentChapter } = data.progress;
         
-        // Update status
+        // Update status and counts
         if (statusEl) {
           statusEl.textContent = isLoading ? 'Loading...' : 'Ready';
           statusEl.className = `font-semibold ${isLoading ? 'text-yellow-500' : 'text-green-500'}`;
         }
         
-        // Update counts
-        if (totalEl) totalEl.textContent = total;
-        if (loadedEl) loadedEl.textContent = loadedCount;
-        if (failedEl) failedEl.textContent = failedCount;
+        if (totalEl) totalEl.textContent = total.toString();
+        if (loadedEl) loadedEl.textContent = loadedCount.toString();
+        if (failedEl) failedEl.textContent = failedCount.toString();
         
-        // Update progress bar
+        // Update progress bar and percentage
         if (progressBarEl) {
           progressBarEl.style.width = `${current}%`;
         }
-        
-        // Update error message
-        if (errorContainerEl && lastErrorEl) {
-          if (lastError) {
-            errorContainerEl.classList.remove('hidden');
-            lastErrorEl.textContent = lastError;
-          } else {
-            errorContainerEl.classList.add('hidden');
-          }
-        }
-        
-        // Update button state
-        if (loadDataBtn instanceof HTMLButtonElement) {
-          loadDataBtn.disabled = isLoading;
-          loadDataBtn.textContent = isLoading ? 'Loading in progress...' : 'Start Loading Data';
+        if (percentageEl) {
+          percentageEl.textContent = `${Math.round(current)}%`;
         }
 
         // Update processing speed
-        if (isLoading && speedEl) {
+        if (speedEl && isLoading) {
           const elapsedSeconds = (Date.now() - startTime) / 1000;
           const itemsPerSecond = (loadedCount / elapsedSeconds).toFixed(1);
           speedEl.textContent = `${itemsPerSecond}/s`;
         }
 
-        // Update percentage
-        if (percentageEl) {
-          percentageEl.textContent = `${Math.round(current)}%`;
+        // Add chapter loading information to log
+        if (currentChapter) {
+          addLogMessage(
+            `Loading chapter ${currentChapter.number} (${currentChapter.pageCount} pages)`,
+            currentChapter.pageCount > 0 ? 'success' : 'info'
+          );
         }
 
         // Update current manga details if available
         if (currentManga) {
           updateCurrentManga(currentManga);
-          addLogMessage(`Processing: ${currentManga.title}`, 'info');
         }
 
         if (isLoading) {
-          setTimeout(updateProgress, 1000);
+          setTimeout(() => {
+            void updateProgress();
+          }, 1000);
         } else {
           addLogMessage('Processing completed!', 'success');
-          currentMangaDetailsEl?.classList.add('hidden');
+          if (currentMangaDetailsEl) {
+            currentMangaDetailsEl.classList.add('hidden');
+          }
         }
       }
     } catch (error) {
       console.error('Error updating progress:', error);
-      if (error instanceof Error) {
-        addLogMessage(`Error: ${error.message}`, 'error');
-      } else {
-        addLogMessage('An unknown error occurred.', 'error');
-      }
+      addLogMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
   }
 
+  // Initialize on page load
   if (loadDataBtn) {
     loadDataBtn.addEventListener('click', async () => {
       try {
+        startTime = Date.now();
+        processedItems = 0;
+        
         if (loadDataBtn instanceof HTMLButtonElement) {
           loadDataBtn.disabled = true;
-          loadDataBtn.textContent = 'Loading in progress...';
-          
-          const response = await fetch('/api/admin/load-initial-data', {
-            method: 'POST'
-          });
+          const span = loadDataBtn.querySelector('span');
+          if (span) {
+            span.textContent = 'Loading in progress...';
+          }
         }
+        
         const response = await fetch('/api/admin/load-initial-data', {
           method: 'POST'
         });
@@ -276,22 +326,20 @@ const progress = dataLoader.getProgress();
           throw new Error('Failed to start data load');
         }
         
-        // Start progress updates
-        updateProgress();
+        addLogMessage('Starting data load...', 'info');
+        void updateProgress();
       } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to start data load: ' + error.message);
+        console.error('Error starting data load:', error);
+        addLogMessage(`Failed to start data load: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         if (loadDataBtn instanceof HTMLButtonElement) {
           loadDataBtn.disabled = false;
-          loadDataBtn.textContent = 'Start Loading Data';
+          const span = loadDataBtn.querySelector('span');
+          if (span) {
+            span.textContent = 'Start Loading Data';
+          }
         }
       }
     });
-    
-    // Start progress updates if already loading
-    if (statusEl?.textContent === 'Loading...') {
-      updateProgress();
-    }
   }
 
   // Update cancel button handler
@@ -301,7 +349,8 @@ const progress = dataLoader.getProgress();
       addLogMessage('Processing cancelled by user', 'info');
     } catch (error) {
       console.error('Error cancelling load:', error);
-      addLogMessage(`Error: ${error.message}`, 'error');
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      addLogMessage(`An error occurred while cancelling the load: ${errorMessage}`, 'error');
     }
   });
 </script>

@@ -5,6 +5,8 @@ import { logger } from '../utils/logger';
 import { initDB, waitForConnection } from '../config/database';
 import axios from 'axios';
 import { config } from '../config/config';
+import type { Chapter } from '../models/manga';
+import { reconnectDB, isDBConnected } from '../db/init';
 
 interface SearchOptions {
   offset?: number;
@@ -22,6 +24,8 @@ class MangaService {
   private initializationPromise: Promise<void> | null = null;
   private readonly MAX_INIT_RETRIES = 3;
   private readonly INIT_TIMEOUT = 30000; // 30 seconds
+  private pageCache: Map<string, string[]> = new Map();
+  private readonly CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
   constructor() {
     // Initialize will be called before any operation
@@ -79,166 +83,211 @@ class MangaService {
   }
 
   async saveManga(mangaData: any, chaptersCount = 0): Promise<Manga> {
+    let coverUrl: string | null = null;
+    let coverFileName: string | null = null;
+    let authors: string[] = [];
+    let artists: string[] = [];
+    let chapters: any[] = [];
     try {
-      // Ensure database is initialized before proceeding
-      await this.ensureInitialized();
-      
-      logger.info('Starting manga save process', { mangaId: mangaData.id });
+      if (!isDBConnected()) {
+        await reconnectDB();
+      }
 
-      // Extract basic manga info
-      const mangaDoc = {
-        mangadexId: mangaData.id,
-        title: mangaData.attributes.title.en || Object.values(mangaData.attributes.title)[0],
-        description: mangaData.attributes.description.en || Object.values(mangaData.attributes.description)[0],
-        status: mangaData.attributes.status,
-        contentRating: mangaData.attributes.contentRating,
-        tags: mangaData.attributes.tags
-          .filter((tag: any) => tag.attributes.group === 'genre')
-          .map((tag: any) => tag.attributes.name.en),
-        createdAt: new Date(mangaData.attributes.createdAt),
-        updatedAt: new Date(mangaData.attributes.updatedAt),
-        coverUrl: ''
-      };
-
-      const coverArt = mangaData.relationships.find((rel: any) => rel.type === 'cover_art');
-      const coverFileName = coverArt?.attributes?.fileName;
-      mangaDoc.coverUrl = coverFileName
-        ? `https://uploads.mangadex.org/covers/${mangaData.id}/${coverFileName}`
-        : DEFAULT_COVER_URL;
-
-      // Find existing manga
+      // Check for existing manga
       const existingManga = await MangaModel.findOne({ mangadexId: mangaData.id });
       
       if (existingManga) {
-        logger.info('Updating existing manga', { mangaId: mangaData.id });
-        // Update only missing or changed fields
+        // Only update chapters that don't exist or need page loads
         const updates: any = {};
         
-        for (const [key, value] of Object.entries(mangaDoc)) {
-          if (!(existingManga as any)[key] || JSON.stringify((existingManga as any)[key]) !== JSON.stringify(value)) {
-            updates[key] = value;
+        if (mangaData.chapters?.length) {
+          const newChapters = [];
+          for (const chapter of mangaData.chapters) {
+            const existingChapter = existingManga.chapters.find(
+              (ch: Chapter) => ch.chapterId === chapter.id
+            );
+            
+            if (!existingChapter || existingManga.needsPageLoad(chapter.id)) {
+              newChapters.push({
+                chapterId: chapter.id,
+                number: chapter.attributes.chapter,
+                title: chapter.attributes.title,
+                volume: chapter.attributes.volume,
+                pages: [],
+                publishedAt: new Date(chapter.attributes.publishAt),
+                pagesLoaded: false
+              });
+            }
+          }
+          
+          if (newChapters.length > 0) {
+            updates.chapters = [...existingManga.chapters, ...newChapters];
           }
         }
-
-        // Update chapters if they don't exist
-        if (!existingManga.chapters?.length) {
-          logger.info('Fetching chapters for manga', { mangaId: mangaData.id });
-          const chaptersResponse = await mangadex.getMangaChapters(mangaData.id);
-          if (chaptersResponse.length > 0) {
-            updates.chapters = chaptersResponse.map((chapter: any) => ({
-              chapterId: chapter.id,
-              number: chapter.attributes.chapter,
-              title: chapter.attributes.title,
-              volume: chapter.attributes.volume,
-              pages: [], // Will be populated on-demand
-              publishedAt: new Date(chapter.attributes.publishAt)
-            }));
-          }
-        }
-
+        
         // Apply updates if there are any
         if (Object.keys(updates).length > 0) {
-          logger.info('Applying updates to manga', { 
-            mangaId: mangaData.id,
-            updatedFields: Object.keys(updates)
-          });
           const updatedManga = await MangaModel.findOneAndUpdate(
             { mangadexId: mangaData.id },
             { $set: updates },
             { new: true }
           );
-          if (!updatedManga) {
-            throw new Error(`Failed to update manga with id: ${mangaData.id}`);
-          }
-          logger.success('Saved manga', {
-            mangaId: mangaData.id,
-            title: mangaData.title,
-            chaptersCount
-          });
-          return updatedManga;
+          return updatedManga!;
         }
-
-        return existingManga;
-      } else {
-        logger.info('Creating new manga entry', { mangaId: mangaData.id });
-        // Create new manga with all data
-        const coverArt = mangaData.relationships.find((rel: any) => rel.type === 'cover_art');
-        const coverFileName = coverArt?.attributes?.fileName || '';
-        const coverUrl = coverFileName ? 
-          `https://uploads.mangadex.org/covers/${mangaData.id}/${coverFileName}` :
-          DEFAULT_COVER_URL;
-
-        const authors = mangaData.relationships
-          .filter((rel: any) => rel.type === 'author')
-          .map((author: any) => author.attributes?.name || 'Unknown');
-
-        const artists = mangaData.relationships
-          .filter((rel: any) => rel.type === 'artist')
-          .map((artist: any) => artist.attributes?.name || 'Unknown');
-
-        // Fetch chapters
-        logger.info('Fetching chapters for new manga', { mangaId: mangaData.id });
-        const chaptersResponse = await mangadex.getMangaChapters(mangaData.id);
-        let chapters: Array<{
-          chapterId: string;
-          number: string;
-          title: string | null;
-          volume: string | null;
-          pages: string[];
-          publishedAt: Date;
-        }> = [];
         
-        if (chaptersResponse.length > 0) {
-          chapters = chaptersResponse.map((chapter: any) => ({
+        return existingManga;
+      }
+      
+      logger.info('Creating new manga entry', { mangaId: mangaData.id });
+      
+      // Extract cover art info
+      const coverArt = mangaData.relationships.find((rel: any) => rel.type === 'cover_art');
+      coverFileName = coverArt?.attributes?.fileName || '';
+      coverUrl = coverFileName ? 
+        `https://uploads.mangadex.org/covers/${mangaData.id}/${coverFileName}` :
+        DEFAULT_COVER_URL;
+
+      // Extract authors and artists
+      authors = mangaData.relationships
+        .filter((rel: any) => rel.type === 'author')
+        .map((author: any) => author.attributes?.name || 'Unknown');
+
+      artists = mangaData.relationships
+        .filter((rel: any) => rel.type === 'artist')
+        .map((artist: any) => artist.attributes?.name || 'Unknown');
+
+      // Fetch chapters
+      const chaptersResponse = await mangadex.getMangaChapters(mangaData.id);
+      chapters = chaptersResponse.length > 0 
+        ? chaptersResponse.map((chapter: any) => ({
             chapterId: chapter.id,
             number: chapter.attributes.chapter,
             title: chapter.attributes.title,
             volume: chapter.attributes.volume,
             pages: [], // Will be populated on-demand
             publishedAt: new Date(chapter.attributes.publishAt)
-          }));
-        }
+          }))
+        : [];
 
-        const newManga = new MangaModel({
-          ...mangaDoc,
-          coverUrl,
-          coverFileName,
-          authors,
-          artists,
-          chapters
-        });
+      // Create new manga data object
+      const newMangaData = {
+        mangadexId: mangaData.id,
+        title: mangaData.attributes.title.en || Object.values(mangaData.attributes.title)[0],
+        description: mangaData.attributes.description.en || 'No description available',
+        coverUrl,
+        coverFileName,
+        authors,
+        artists,
+        status: mangaData.attributes.status,
+        contentRating: mangaData.attributes.contentRating,
+        tags: mangaData.attributes.tags
+          .filter((tag: any) => tag.attributes.group === 'genre')
+          .map((tag: any) => tag.attributes.name.en),
+        chapters
+      };
 
-        logger.success('Successfully created new manga', { 
-          mangaId: mangaData.id,
-          chaptersCount
-        });
-        return newManga.save();
-      }
-    } catch (error) {
+      const newManga = new MangaModel(newMangaData);
+
+      logger.success('Successfully created new manga', { 
+        mangaId: mangaData.id,
+        chaptersCount: chapters.length
+      });
+      
+      return await newManga.save();
+
+    } catch (error: any) {
       logger.error('Error saving manga:', error);
+      
+      if (error.message.includes('connection')) {
+        await reconnectDB();
+        
+        // All variables are now in scope for retry
+        const retryMangaData = {
+          mangadexId: mangaData.id,
+          title: mangaData.attributes.title.en || Object.values(mangaData.attributes.title)[0],
+          description: mangaData.attributes.description.en || 'No description available',
+          coverUrl: coverUrl || '',
+          coverFileName: coverFileName || '',
+          authors: authors || [],
+          artists: artists || [],
+          status: mangaData.attributes.status,
+          contentRating: mangaData.attributes.contentRating,
+          tags: mangaData.attributes.tags
+            .filter((tag: any) => tag.attributes.group === 'genre')
+            .map((tag: any) => tag.attributes.name.en),
+          chapters: chapters || []
+        };
+        
+        const manga = new MangaModel(retryMangaData);
+        return await manga.save();
+      }
+      
       throw error;
     }
   }
 
   async getManga(id: string): Promise<Manga | null> {
     try {
-      await this.ensureInitialized();
+      if (!isDBConnected()) {
+        await reconnectDB();
+      }
       logger.info('Fetching manga', { mangaId: id });
-      // Try to find manga in database
+      
+      // Try to find manga in database first
       const manga = await MangaModel.findOne({ mangadexId: id });
       
       if (!manga) {
         logger.info('Manga not found in database, fetching from API', { mangaId: id });
-        // If not found in database, fetch from MangaDex API
-        const response = await mangadex.getManga(id);
-        
-        if (response.result === 'error') {
-          logger.error('MangaDex API error:', response.errors);
+        try {
+          // If not found in database, fetch from MangaDex API
+          const response = await mangadex.getManga(id);
+          
+          // Check if response exists and has data
+          if (!response || !response.data) {
+            logger.warn('Invalid response from MangaDex API', { mangaId: id });
+            return null;
+          }
+          
+          if (response.result === 'error') {
+            logger.warn('MangaDex API returned error', { 
+              mangaId: id, 
+              error: response.errors?.[0]?.detail || 'Unknown error'
+            });
+            return null;
+          }
+          
+          // Save to database and return
+          const chapters = await mangadex.getMangaChapters(id);
+          const newManga = await this.saveManga(response.data, chapters.length);
+          // Fetch pages for each chapter
+          for (const ch of chapters) {
+            const chapterId = ch.id;
+            const pages = await this.getChapterPages(chapterId);
+            await this.saveChapterPages(chapterId, pages);
+          }
+          return newManga;
+        } catch (error) {
+          // Handle specific error types
+          if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+              logger.warn('Manga not found on MangaDex', { mangaId: id });
+              return null;
+            }
+            
+            logger.error('API request failed', {
+              mangaId: id,
+              status: error.response?.status,
+              statusText: error.response?.statusText,
+              url: error.config?.url
+            });
+          } else {
+            logger.error('Unexpected error fetching manga', {
+              mangaId: id,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
           return null;
         }
-        
-        // Save to database and return
-        return this.saveManga(response.data);
       }
       
       logger.info('Manga found in database', { 
@@ -246,9 +295,25 @@ class MangaService {
         title: manga.title,
         chaptersCount: manga.chapters?.length || 0 
       });
+      const remoteChapters = await mangadex.getMangaChapters(id);
+      for (const ch of remoteChapters) {
+        const storedChapter = manga.chapters.find((chapter: Chapter) => chapter.chapterId === ch.id);
+        if (!storedChapter || !storedChapter.pages || storedChapter.pages.length === 0) {
+          const pages = await this.getChapterPages(ch.id);
+          await this.saveChapterPages(ch.id, pages);
+        }
+      }
       return manga;
     } catch (error) {
-      logger.error('Error getting manga:', error);
+      // Handle unexpected errors
+      logger.error('Error in getManga', {
+        mangaId: id,
+        error: error instanceof Error ? {
+          message: error.message,
+          name: error.name,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        } : 'Unknown error'
+      });
       return null;
     }
   }
@@ -429,8 +494,24 @@ class MangaService {
 
   async getChapterPages(chapterId: string): Promise<string[]> {
     logger.debug('Fetching chapter pages', { chapterId });
+    
+    // Check cache first
+    const cached = this.pageCache.get(chapterId);
+    if (cached) {
+      logger.debug('Returning cached pages', { chapterId });
+      return cached;
+    }
+
     try {
-      return await mangadex.getChapterPages(chapterId);
+      const pages = await mangadex.getChapterPages(chapterId);
+      
+      // Cache the results
+      this.pageCache.set(chapterId, pages);
+      setTimeout(() => {
+        this.pageCache.delete(chapterId);
+      }, this.CACHE_DURATION);
+
+      return pages;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Failed to fetch chapter pages', { error: errorMessage, chapterId });
@@ -438,9 +519,29 @@ class MangaService {
     }
   }
 
-async saveChapterPages(chapterId: string, pages: string[]): Promise<void> {
-  if (!chapterId) {
-    logger.warn('Attempted to save pages with undefined chapterId');
+  async preloadChapterPages(mangaId: string, currentChapterId: string): Promise<void> {
+    const manga = await MangaModel.findOne({ mangadexId: mangaId });
+    if (!manga) return;
+
+    const currentIndex = manga.chapters.findIndex((ch: Chapter) => ch.chapterId === currentChapterId);
+    if (currentIndex === -1) return;
+
+    // Preload next 2 chapters in background
+    const chaptersToPreload = manga.chapters.slice(currentIndex + 1, currentIndex + 3);
+    
+    for (const chapter of chaptersToPreload) {
+      if (manga.needsPageLoad(chapter.chapterId)) {
+        this.getChapterPages(chapter.chapterId).catch(() => {
+          // Silently fail for preloading
+          logger.debug('Failed to preload chapter', { chapterId: chapter.chapterId });
+        });
+      }
+    }
+  }
+
+  async saveChapterPages(chapterId: string, pages: string[]): Promise<void> {
+    if (!chapterId) {
+      logger.warn('Attempted to save pages with undefined chapterId');
       return;
     }
     try {
@@ -482,7 +583,7 @@ async saveChapterPages(chapterId: string, pages: string[]): Promise<void> {
       publishedAt: Date;
     }
 
-    const existingChapterIds: string[] = (storedManga.chapters || [] as StoredChapter[]).map((ch: StoredChapter) => ch.chapterId);
+    const existingChapterIds: string[] = (storedManga.chapters || [] as Chapter[]).map((ch) => ch.chapterId);
     const missingChapters = chaptersResponse.filter(ch => !existingChapterIds.includes(ch.id));
 
     if (missingChapters.length > 0) {
@@ -507,7 +608,53 @@ async saveChapterPages(chapterId: string, pages: string[]): Promise<void> {
       );
     }
   }
+
+  async loadMissingChapterPages(manga: Manga): Promise<void> {
+    const storedManga = await MangaModel.findOne({ mangadexId: manga.mangadexId });
+    if (!storedManga) {
+      logger.warn('Manga not found in DB, skipping', { mangaId: manga.mangadexId });
+      return;
+    }
+
+    for (const chapter of storedManga.chapters) {
+      if (storedManga.needsPageLoad(chapter.chapterId)) {
+        try {
+          const pages = await this.getChapterPages(chapter.chapterId);
+          if (pages.length > 0) {
+            await MangaModel.updateOne(
+              { 
+                mangadexId: manga.mangadexId,
+                'chapters.chapterId': chapter.chapterId 
+              },
+              { 
+                $set: { 
+                  'chapters.$.pages': pages,
+                  'chapters.$.pagesLoaded': true
+                } 
+              }
+            );
+            logger.info(`Loaded pages for chapter ${chapter.chapterId}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to load pages for chapter ${chapter.chapterId}:`, error);
+        }
+      }
+    }
+  }
+
+  async getChapterUrl(mangaId: string, chapterId: string): Promise<string> {
+    // Log warning if someone tries to construct the old URL format
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        'Warning: Using deprecated /read/ route format. Please update to /manga/:id/chapter/:chapterId'
+      );
+    }
+    return `/manga/${mangaId}/chapter/${chapterId}`;
+  }
 }
+
+// Constants
+const DEFAULT_COVER_URL = 'https://placeholder.moe/i/500x700.png?text=No+Cover';
 
 export const mangaService = new MangaService();
 
@@ -533,5 +680,3 @@ export async function getAtHomeServerData(chapterId: string, useDataSaver = fals
     `${baseUrl}/${useDataSaver ? 'data-saver' : 'data'}/${hash}/${filename}`
   );
 }
-
-const DEFAULT_COVER_URL = 'https://placeholder.moe/i/500x700.png?text=No+Cover';

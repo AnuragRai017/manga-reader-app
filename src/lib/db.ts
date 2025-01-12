@@ -18,6 +18,20 @@ class Database {
       this.client = await MongoClient.connect(MONGODB_URI);
       this.db = this.client.db(DB_NAME);
       console.log('Connected to MongoDB');
+
+      // Add event listeners for connection events
+      this.client.on('close', () => {
+        console.warn('MongoDB connection closed');
+        this.client = null;
+        this.db = null;
+      });
+
+      this.client.on('error', (error) => {
+        console.error('MongoDB connection error:', error);
+        this.client = null;
+        this.db = null;
+      });
+
       return this.db;
     } catch (error) {
       console.error('MongoDB connection error:', error);

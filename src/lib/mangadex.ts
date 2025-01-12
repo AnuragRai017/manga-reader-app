@@ -7,13 +7,22 @@ const BASE_URL = 'https://api.mangadex.org';
 const MAX_RETRIES = 3;
 const TIMEOUT = 20000; // 20 seconds
 
-// Initialize rate limiter
-const limiter = new Bottleneck({
-  reservoir: 80, // Number of tokens
+// Existing global limiter
+const globalLimiter = new Bottleneck({
+  reservoir: 80, // Total requests per minute
   reservoirRefreshAmount: 80,
-  reservoirRefreshInterval: 60 * 1000, // Refresh every minute
-  maxConcurrent: 5, // Maximum concurrent requests
-  minTime: 750 // Minimum time between requests (in ms) => ~80 requests per minute
+  reservoirRefreshInterval: 60 * 1000, // 1 minute
+  maxConcurrent: 5,
+  minTime: 750, // Minimum time between requests
+});
+
+// Separate limiter for /at-home/server/{id}
+const atHomeLimiter = new Bottleneck({
+  reservoir: 40, // 40 requests per minute
+  reservoirRefreshAmount: 40,
+  reservoirRefreshInterval: 60 * 1000, // 1 minute
+  maxConcurrent: 1,
+  minTime: 1500, // Additional delay to prevent bursts
 });
 
 // Response type definitions
@@ -157,66 +166,33 @@ export class MangaDexAPI {
   }
 
   private async request<T>(endpoint: string, config: any = {}): Promise<T> {
-    try {
-      logger.info('Making API request', { endpoint, params: config.params });
-      const url = `${BASE_URL}${endpoint}`;
-      
-      const axiosConfig = {
-        ...config,
-        timeout: TIMEOUT,
-        family: 4,
-        headers: {
-          ...config.headers,
-          'User-Agent': 'MangaReader/1.0',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(this.accessToken && { Authorization: `Bearer ${this.accessToken}` }),
-          'Connection': 'close'
+    // Choose the appropriate limiter based on the endpoint
+    const limiter = endpoint.startsWith('/at-home/server') ? atHomeLimiter : globalLimiter;
+
+    return limiter.schedule(() => axios.get<T>(`${BASE_URL}${endpoint}`, config))
+      .then(response => {
+        // Update rate limit info if needed
+        this.rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'] || '0');
+        this.rateLimitResetTime = parseInt(response.headers['x-ratelimit-reset'] || '0') * 1000;
+        return response.data;
+      })
+      .catch(error => {
+        if (axios.isAxiosError(error)) {
+          // Handle 429 errors specifically
+          if (error.response?.status === 429) {
+            const retryAfter = parseInt(error.response.headers['retry-after'] || '60');
+            logger.warn('Rate limit exceeded, retrying after delay', { retryAfter, endpoint });
+            return new Promise<T>((resolve, reject) => {
+              setTimeout(() => {
+                this.request<T>(endpoint, config).then(resolve).catch(reject);
+              }, retryAfter * 1000);
+            });
+          }
+          // Handle other errors
+          logger.error(`API request error (${endpoint}):`, error.response?.data);
         }
-      };
-      
-      if (this.rateLimitRemaining <= 1) {
-        const waitTime = Math.max(0, this.rateLimitResetTime - Date.now());
-        logger.warn(`Rate limit almost exceeded, waiting ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-
-      const response = await limiter.schedule(() => axios.get<T>(url, axiosConfig));
-
-      this.rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'] || '5');
-      const resetTime = parseInt(response.headers['x-ratelimit-reset'] || '0');
-      this.rateLimitResetTime = resetTime > 0 ? resetTime * 1000 : Date.now() + 1000;
-
-      logger.info('API request successful', { 
-        endpoint,
-        rateLimitRemaining: this.rateLimitRemaining,
-        resetIn: Math.max(0, this.rateLimitResetTime - Date.now())
+        throw error;
       });
-
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        logger.error(`API request error (${endpoint}):`, {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
-
-        if (error.response?.status === 429) {
-          const retryAfter = parseInt(error.response.headers['retry-after'] || '60');
-          logger.warn('Rate limit exceeded, waiting to retry', { retryAfter, endpoint });
-          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-          return this.request(endpoint, config);
-        }
-
-        if (error.code === 'ECONNABORTED' || error.code === 'EACCES' || error.code === 'ETIMEDOUT') {
-          logger.warn('Connection error, retrying...', { endpoint, code: error.code });
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          return this.request(endpoint, config);
-        }
-      }
-      throw error;
-    }
   }
 
   async searchManga(options: SearchOptions) {
@@ -378,4 +354,79 @@ export async function fetchChapterPages(chapterId: string, useDataSaver = false)
     logger.error('Error in fetchChapterPages', { error, chapterId });
     throw error;
   }
+}
+
+async function fetchWithRateLimitHandling(url: string, options: any = {}) {
+  const MAX_RETRIES = 3;
+  const RATE_LIMIT_DELAY = 2000; // 2 seconds
+  const TIMEOUT = 20000; // 20 seconds
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const config = {
+        ...options,
+        timeout: TIMEOUT,
+        headers: {
+          ...options.headers,
+          'User-Agent': 'MangaReader/1.0',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Connection': 'close'
+        }
+      };
+
+      const response = await axios(url, config);
+
+      // Track rate limit headers if they exist
+      const rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'] || '0');
+      const rateLimitReset = parseInt(response.headers['x-ratelimit-reset'] || '0') * 1000;
+
+      // Log rate limit info
+      logger.debug('Rate limit status', {
+        remaining: rateLimitRemaining,
+        resetAt: new Date(rateLimitReset).toISOString()
+      });
+
+      return response.data;
+
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        // Rate limit exceeded
+        const retryAfter = parseInt(error.response.headers['retry-after'] || '2');
+        const waitTime = retryAfter * 1000 || RATE_LIMIT_DELAY;
+        
+        logger.warn('Rate limit exceeded', {
+          attempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          waitTime,
+          url
+        });
+
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      if (attempt === MAX_RETRIES - 1) {
+        // Last attempt failed
+        logger.error('Request failed after max retries', {
+          url,
+          status: error.response?.status,
+          message: error.message
+        });
+        throw error;
+      }
+
+      // Handle other errors
+      logger.warn('Request failed, retrying', {
+        attempt: attempt + 1,
+        maxRetries: MAX_RETRIES,
+        status: error.response?.status,
+        message: error.message
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+    }
+  }
+
+  throw new Error(`Max retries (${MAX_RETRIES}) reached for: ${url}`);
 }

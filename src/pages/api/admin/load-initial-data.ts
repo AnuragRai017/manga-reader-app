@@ -12,6 +12,7 @@ interface ProgressData {
 }
 
 interface SSEClient extends WritableStream {
+  write: (chunk: string) => void;
   writeHead: (statusCode: number, headers: Record<string, string>) => void;
   clientId?: string;
 }

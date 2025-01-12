@@ -67,53 +67,66 @@ export class DataLoader {
 
           logger.info(`Processing batch of ${response.data.length} manga`, { offset });
 
-          // Process manga sequentially
+          const concurrency = 10;
+          const tasks: Promise<void>[] = [];
+          
           for (const mangaData of response.data) {
-            try {
-              const chapters = await mangadex.getMangaChapters(mangaData.id);
-              await mangaService.saveManga(mangaData, chapters.length);
-              
-              // Fetch and save pages for each chapter
-              for (const chapter of chapters) {
-                const chapterId = chapter.id; // Changed from chapter.chapterId to chapter.id
-                if (!chapterId) {
-                  logger.warn('Chapter ID is undefined', { chapter });
-                  continue;
+            tasks.push((async () => {
+              try {
+                const chapters = await mangadex.getMangaChapters(mangaData.id);
+                await mangaService.saveManga(mangaData, chapters.length);
+                
+                // Fetch and save pages for each chapter
+                for (const chapter of chapters) {
+                  const chapterId = chapter.id; // Changed from chapter.chapterId to chapter.id
+                  if (!chapterId) {
+                    logger.warn('Chapter ID is undefined', { chapter });
+                    continue;
+                  }
+                  try {
+                    const pages = await mangaService.getChapterPages(chapterId);
+                    await mangaService.saveChapterPages(chapterId, pages);
+                  } catch (error: any) {
+                    this.progress.failedCount++;
+                    this.progress.lastError = error.message;
+                    logger.error('Failed to fetch or save chapter pages', { error: error.message, chapterId });
+                    broadcastProgress({
+                      manga: mangaData.attributes.title.en,
+                      updatedChapters: chapters.length,
+                      status: `Error fetching pages for chapter ${chapterId}`
+                    });
+                    // ...existing error handling...
+                  }
                 }
-                try {
-                  const pages = await mangaService.getChapterPages(chapterId);
-                  await mangaService.saveChapterPages(chapterId, pages);
-                } catch (error: any) {
-                  this.progress.failedCount++;
-                  this.progress.lastError = error.message;
-                  logger.error('Failed to fetch or save chapter pages', { error: error.message, chapterId });
-                  broadcastProgress({
-                    manga: mangaData.attributes.title.en,
-                    updatedChapters: chapters.length,
-                    status: `Error fetching pages for chapter ${chapterId}`
-                  });
-                  // ...existing error handling...
-                }
-              }
 
-              this.progress.loadedCount++;
-              logger.success('Saved manga', { 
-                mangaId: mangaData.id,
-                title: mangaData.attributes.title.en 
-              });
-              broadcastProgress({
-                manga: mangaData.attributes.title.en,
-                updatedChapters: chapters.length,
-                status: 'updating...'
-              });
-            } catch (error: any) {
-              this.progress.failedCount++;
-              this.progress.lastError = error.message;
-              logger.error('Failed to save manga', { 
-                mangaId: mangaData.id,
-                error: error.message 
-              });
+                this.progress.loadedCount++;
+                logger.success('Saved manga', { 
+                  mangaId: mangaData.id,
+                  title: mangaData.attributes.title.en 
+                });
+                broadcastProgress({
+                  manga: mangaData.attributes.title.en,
+                  updatedChapters: chapters.length,
+                  status: 'updating...'
+                });
+              } catch (error: any) {
+                this.progress.failedCount++;
+                this.progress.lastError = error.message;
+                logger.error('Failed to save manga', { 
+                  mangaId: mangaData.id,
+                  error: error.message 
+                });
+              }
+            })());
+
+            if (tasks.length >= concurrency) {
+              await Promise.all(tasks);
+              tasks.length = 0;
             }
+          }
+
+          if (tasks.length > 0) {
+            await Promise.all(tasks);
           }
 
           offset += response.data.length;

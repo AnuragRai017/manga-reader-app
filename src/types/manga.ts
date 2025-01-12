@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 
 export interface Manga {
-  _id: ObjectId;
+  _id?: ObjectId;
   mangadexId: string;
   title: string;
   description: string;

@@ -1,0 +1,185 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content="Manga reader" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-gray-900 min-h-screen">
+    <!-- Reading Progress Bar -->
+    <div id="reading-progress" class="fixed top-0 left-0 w-full h-1 bg-gray-800 z-50">
+      <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-300"></div>
+    </div>
+
+    <!-- Reading Controls -->
+    <div id="reading-controls" class="fixed bottom-0 left-0 right-0 bg-gray-800 bg-opacity-90 p-4 transform transition-transform duration-300 translate-y-full hover:translate-y-0 z-40">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <!-- Reading Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Reading Mode Toggle -->
+          <button id="reading-mode" class="text-white hover:text-blue-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+          </button>
+          
+          <!-- Zoom Controls -->
+          <div class="flex items-center space-x-2">
+            <button id="zoom-out" class="text-white hover:text-blue-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+              </svg>
+            </button>
+            <span id="zoom-level" class="text-white">100%</span>
+            <button id="zoom-in" class="text-white hover:text-blue-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Page Navigation -->
+        <div class="flex items-center space-x-4">
+          <span id="page-info" class="text-white"></span>
+        </div>
+      </div>
+    </div>
+
+    <slot />
+  </body>
+</html>
+
+<script>
+  let currentZoom = 100;
+  let readingMode = 'vertical'; // or 'horizontal'
+
+  // Reading Progress
+  function updateReadingProgress() {
+    const progress = document.getElementById('progress-bar');
+    const scrollPosition = window.scrollY;
+    const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const percentage = (scrollPosition / totalHeight) * 100;
+    
+    if (progress) {
+      progress.style.width = `${percentage}%`;
+    }
+  }
+
+  // Zoom Controls
+  function handleZoom(direction: 'in' | 'out') {
+    const images = document.querySelectorAll('img');
+    const zoomLevel = document.getElementById('zoom-level');
+    
+    currentZoom = direction === 'in' 
+      ? Math.min(currentZoom + 10, 200)
+      : Math.max(currentZoom - 10, 50);
+    
+    images.forEach(img => {
+      img.style.width = `${currentZoom}%`;
+    });
+    
+    if (zoomLevel) {
+      zoomLevel.textContent = `${currentZoom}%`;
+    }
+  }
+
+  // Reading Mode Toggle
+  function toggleReadingMode() {
+    const container = document.querySelector('.space-y-4');
+    readingMode = readingMode === 'vertical' ? 'horizontal' : 'vertical';
+    
+    if (container) {
+      container.classList.toggle('flex');
+      container.classList.toggle('space-x-4');
+      container.classList.toggle('space-y-4');
+      container.classList.toggle('overflow-x-auto');
+    }
+  }
+
+  // Event Listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('scroll', updateReadingProgress);
+    
+    document.getElementById('zoom-in')?.addEventListener('click', () => handleZoom('in'));
+    document.getElementById('zoom-out')?.addEventListener('click', () => handleZoom('out'));
+    document.getElementById('reading-mode')?.addEventListener('click', toggleReadingMode);
+
+    // Update page info
+    const images = document.querySelectorAll('img');
+    const pageInfo = document.getElementById('page-info');
+    if (pageInfo) {
+      pageInfo.textContent = `Page 1 of ${images.length}`;
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        const amount = e.key === 'ArrowRight' ? 100 : -100;
+        window.scrollBy({ top: amount, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  /* Add any reader-specific global styles here */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5a;
+  }
+  
+  /* Add smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Reading mode transitions */
+  .space-y-4 {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Hide controls when not hovering */
+  #reading-controls {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  /* Horizontal reading mode styles */
+  .flex.space-x-4 {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .flex.space-x-4 img {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+</style> 

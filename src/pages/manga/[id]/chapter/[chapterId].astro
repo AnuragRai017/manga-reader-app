@@ -1,5 +1,5 @@
 ---
-import Layout from '../../../../layouts/Layout.astro';
+import ReaderLayout from '../../../../layouts/ReaderLayout.astro';
 import { mangaService } from '../../../../lib/services/mangaService';
 import { initDB } from '../../../../lib/db/init';
 import { logger } from '../../../../lib/utils/logger';
@@ -101,7 +101,7 @@ try {
 ---
 
 {noPagesAvailable ? (
-  <Layout title="No Pages Available">
+  <ReaderLayout title="No Pages Available">
     <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div class="text-center">
         <h1 class="text-2xl font-bold text-red-500">No Pages Available</h1>
@@ -113,9 +113,9 @@ try {
         </a>
       </div>
     </div>
-  </Layout>
+  </ReaderLayout>
 ) : (
-  <Layout title={`${manga.title} - Chapter ${currentChapter.number}`}>
+  <ReaderLayout title={`${manga.title} - Chapter ${currentChapter.number}`}>
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
       <!-- Navigation Bar -->
       <div class="bg-white dark:bg-gray-800 shadow">
@@ -165,5 +165,5 @@ try {
         </div>
       </div>
     </div>
-  </Layout>
+  </ReaderLayout>
 )}

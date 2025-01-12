@@ -1,52 +1,11 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
-import { mangadex } from '../../../lib/mangadex';
-import { mangaModel } from '../../../lib/models/manga';
+import type { APIRoute } from 'astro';
 
-const { mangaId, chapterId } = Astro.params;
-if (!mangaId || !chapterId) {
-  return Astro.redirect('/404');
-}
-
-const manga = await mangaModel.getManga(mangaId);
-if (!manga) {
-  return Astro.redirect('/404');
-}
-
-// Fetch chapter data and pages
-const chapterData = await mangadex.getChapter(chapterId);
-const pages = await mangadex.getChapterPages(chapterId);
-
-// Get chapter number and title
-const chapter = chapterData.data;
-const chapterNum = chapter.attributes.chapter;
-const chapterTitle = chapter.attributes.title;
----
-
-<Layout title={`${manga.title} - Chapter ${chapterNum}`}>
-  <div class="container mx-auto px-4 py-8">
-    <!-- Navigation Bar -->
-    <div class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-50">
-      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-        <a href={`/manga/${manga._id}`} class="text-blue-600 dark:text-blue-400 hover:underline">
-          ← Back to {manga.title}
-        </a>
-        <div class="text-gray-900 dark:text-white">
-          Chapter {chapterNum} {chapterTitle ? `- ${chapterTitle}` : ''}
-        </div>
-      </div>
-    </div>
-
-    <!-- Reader -->
-    <div class="mt-16 flex flex-col items-center space-y-4">
-      {pages.map((page: string, index: number) => (
-        <img
-          src={page}
-          alt={`Page ${index + 1}`}
-          class="max-w-full h-auto"
-          loading={index < 2 ? 'eager' : 'lazy'}
-        />
-      ))}
-    </div>
-  </div>
-</Layout> 
+export const GET: APIRoute = async ({ params, redirect }) => {
+  const { mangaId, chapterId } = params;
+  if (!mangaId || !chapterId) {
+    return redirect('/404');
+  }
+  return redirect(`/manga/${mangaId}/chapter/${chapterId}`);
+};
+--- 
