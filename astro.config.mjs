@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
+import vercel from '@astrojs/vercel';
 import { loadEnv } from 'vite';
 
 const env = loadEnv(process.env.NODE_ENV, process.cwd(), '');
@@ -7,6 +8,7 @@ const env = loadEnv(process.env.NODE_ENV, process.cwd(), '');
 export default defineConfig({
   output: 'server',
   integrations: [tailwind()],
+  adapter: vercel(),
   vite: {
     define: {
       'process.env.MONGODB_URI': JSON.stringify(env.MONGODB_URI),
@@ -20,4 +22,4 @@ export default defineConfig({
       'process.env.SMTP_FROM': JSON.stringify(env.SMTP_FROM),
     },
   },
-}); 
+});
